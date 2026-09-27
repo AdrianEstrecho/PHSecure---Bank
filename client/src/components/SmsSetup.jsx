@@ -5,15 +5,16 @@ import EmailCodeStep from "./EmailCodeStep.jsx";
 import SetupExpired, { isSetupExpired } from "./SetupExpired.jsx";
 import { Button, Field, Input, Select } from "./ui.jsx";
 
+// [short label, dial code]: the label has to fit the narrow picker beside the number.
 const COUNTRIES = [
-  ["Philippines", "+63"],
-  ["Singapore", "+65"],
-  ["Hong Kong", "+852"],
-  ["Japan", "+81"],
-  ["Australia", "+61"],
-  ["United Arab Emirates", "+971"],
-  ["United Kingdom", "+44"],
-  ["United States / Canada", "+1"],
+  ["PH", "+63"],
+  ["SG", "+65"],
+  ["HK", "+852"],
+  ["JP", "+81"],
+  ["AU", "+61"],
+  ["UAE", "+971"],
+  ["UK", "+44"],
+  ["US/CA", "+1"],
 ];
 
 /** Local number → E.164 (a leading trunk 0 is dropped: 0917… → +63917…). */
@@ -77,14 +78,18 @@ export default function SmsSetup({ setupToken, onConfirmed, onRestart }) {
       <p className="text-[15px] leading-relaxed text-muted">We'll text a code to this number to confirm it's yours. Standard message rates may apply.</p>
       <Field label="Mobile number" htmlFor="sms-local" error={error}>
         <div className="flex gap-2">
-          <Select value={dial} onChange={(e) => setDial(e.target.value)} aria-label="Country code" className="w-[7.5rem] shrink-0">
-            {COUNTRIES.map(([name, code]) => (
-              <option key={name} value={code}>
-                {code} {name.split(" ")[0]}
-              </option>
-            ))}
-          </Select>
+          {/* The width sits on a wrapper: Select's own w-full would override a width class passed to it. */}
+          <div className="w-32 shrink-0">
+            <Select value={dial} onChange={(e) => setDial(e.target.value)} aria-label="Country code">
+              {COUNTRIES.map(([label, code]) => (
+                <option key={label} value={code}>
+                  {label} {code}
+                </option>
+              ))}
+            </Select>
+          </div>
           <Input
+            className="min-w-0"
             id="sms-local"
             type="tel"
             inputMode="tel"
