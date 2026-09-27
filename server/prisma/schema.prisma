@@ -1,5 +1,5 @@
 // PHSecure Bank — data model
-// Neon: DATABASE_URL is the pooled connection string, DIRECT_URL the direct one (used by migrations).
+// Supabase: DATABASE_URL is the Transaction pooler string, DIRECT_URL the Session pooler one (used by migrations).
 
 generator client {
   provider = "prisma-client-js"

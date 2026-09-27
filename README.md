@@ -2,7 +2,7 @@
 
 Online banking web app with four selectable two-factor methods — **PHSecure Mail Key** (email code), **PHSecure Authenticator** (TOTP), **PHSecure Text Key** (SMS) and **PHSecure Touch** (passkey) — plus single-use **Vault Codes**. Every method is switched on or off from **Profile → Security**, and every change is confirmed with a code emailed through Brevo first.
 
-React (Vite) · Tailwind CSS v4 · Express 5 · Prisma 6 · PostgreSQL (Neon) · Brevo · otplib · SimpleWebAuthn
+React (Vite) · Tailwind CSS v4 · Express 5 · Prisma 6 · PostgreSQL (Supabase) · Brevo · otplib · SimpleWebAuthn
 
 ## Quick start
 
@@ -12,9 +12,9 @@ Requires Node 22+ (developed on Node 24).
 npm install                      # installs client + server (npm workspaces)
 ```
 
-1. **Database (Neon).** In the Neon console open *Connect* and copy both connection strings into `server/.env`:
-   - `DATABASE_URL` — the **pooled** string (host contains `-pooler`)
-   - `DIRECT_URL` — the **direct** string (used by migrations)
+1. **Database (Supabase).** In the Supabase project click *Connect* and copy two connection strings into `server/.env`:
+   - `DATABASE_URL` — the **Transaction pooler** string (port 6543), with `?pgbouncer=true&connection_limit=1` appended
+   - `DIRECT_URL` — the **Session pooler** string (port 5432, used by migrations)
 2. **Secrets.** `server/.env` already contains freshly generated `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `COOKIE_SECRET` and `TOTP_ENC_KEY`. Keep them private; changing `TOTP_ENC_KEY` later makes existing authenticator links unreadable.
 3. **Create tables and demo data:**
    ```bash
@@ -82,7 +82,7 @@ These go beyond or interpret the spec:
 
 ## Production notes
 
-**Vercel** (`vercel.json`): the built client is served from the CDN and `api/index.mjs` runs the Express app as one function behind `/api/*`. Production builds run `prisma migrate deploy`. Set these on the project: `DATABASE_URL` and `DIRECT_URL` (Neon), the four secrets, `BREVO_API_KEY`/`BREVO_SENDER_EMAIL`, `CLIENT_URL`/`WEBAUTHN_RP_ID`/`WEBAUTHN_ORIGIN` for the site's domain, `TRUST_PROXY=1`, `TRUST_GEO_HEADERS=true`, and optionally `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (redirect URI `https://<domain>/api/auth/google/callback`).
+**Vercel** (`vercel.json`): the built client is served from the CDN and `api/index.mjs` runs the Express app as one function behind `/api/*`. Production builds run `prisma migrate deploy`. Set these on the project: `DATABASE_URL` and `DIRECT_URL` (Supabase), the four secrets, `BREVO_API_KEY`/`BREVO_SENDER_EMAIL`, `CLIENT_URL`/`WEBAUTHN_RP_ID`/`WEBAUTHN_ORIGIN` for the site's domain, `TRUST_PROXY=1`, `TRUST_GEO_HEADERS=true`, and optionally `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (redirect URI `https://<domain>/api/auth/google/callback`).
 
 **Any other host:**
 
