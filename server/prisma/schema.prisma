@@ -1,0 +1,194 @@
+// PHSecure Bank — data model
+// Neon: DATABASE_URL is the pooled connection string, DIRECT_URL the direct one (used by migrations).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String            @id @default(uuid())
+  fullName         String
+  email            String            @unique
+  emailVerified    Boolean           @default(false)
+  phone            String?
+  phoneVerified    Boolean           @default(false)
+  passwordHash     String
+  twoFactorOn      Boolean           @default(false)
+  defaultMethod    TwoFactorType?
+  failedAttempts   Int               @default(0)
+  lockedUntil      DateTime?
+  // Access tokens issued before this instant are rejected (set when the user locks their account).
+  tokensValidAfter DateTime?
+  createdAt        DateTime          @default(now())
+  methods          TwoFactorMethod[]
+  codes            VerificationCode[]
+  backupCodes      BackupCode[]
+  passkeys         Passkey[]
+  accounts         BankAccount[]
+  auditLogs        SecurityLog[]
+  sessions         Session[]
+  devices          Device[]
+  challenges       WebAuthnChallenge[]
+}
+
+enum TwoFactorType {
+  EMAIL
+  TOTP
+  SMS
+  PASSKEY
+}
+
+model TwoFactorMethod {
+  id           String        @id @default(uuid())
+  userId       String
+  type         TwoFactorType
+  enabled      Boolean       @default(false)
+  totpSecret   String? // AES-256-GCM encrypted
+  totpLastStep Int? // last accepted TOTP time-step; blocks code reuse
+  enabledAt    DateTime?
+  lastUsedAt   DateTime?
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
+enum CodePurpose {
+  ENABLE_2FA
+  DISABLE_2FA
+  LOGIN
+  VERIFY_EMAIL
+  VERIFY_PHONE
+  REGENERATE_BACKUP
+}
+
+model VerificationCode {
+  id        String         @id @default(uuid())
+  userId    String
+  codeHash  String
+  purpose   CodePurpose
+  method    TwoFactorType?
+  target    String? // phone number a VERIFY_PHONE code was sent to
+  attempts  Int            @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
+}
+
+model BackupCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Passkey {
+  id         String    @id // WebAuthn credential ID (base64url)
+  userId     String
+  publicKey  Bytes
+  counter    Int
+  deviceName String
+  transports String[]
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WebAuthnChallenge {
+  id        String   @id @default(uuid())
+  userId    String
+  challenge String
+  purpose   String // REGISTER | LOGIN
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+}
+
+model Session {
+  id            String    @id
+  userId        String
+  tokenHash     String
+  // The previous refresh token stays valid for a few seconds after rotation so parallel refreshes don't log the user out.
+  prevTokenHash String?
+  rotatedAt     DateTime?
+  deviceId      String?
+  ip            String
+  userAgent     String
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  lastUsedAt    DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Device {
+  id           String    @id @default(uuid())
+  userId       String
+  cookieHash   String // SHA-256 of the signed aur_device cookie value
+  label        String // e.g. "Chrome on Windows"
+  userAgent    String
+  trustedUntil DateTime? // "Trust this device for 30 days"
+  lastSeenAt   DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cookieHash])
+}
+
+model BankAccount {
+  id           String        @id @default(uuid())
+  userId       String
+  type         String // "Private Current", "Reserve Savings"
+  number       String        @unique
+  balance      Decimal       @db.Decimal(14, 2)
+  currency     String        @default("PHP")
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id           String      @id @default(uuid())
+  accountId    String
+  description  String
+  category     String
+  amount       Decimal     @db.Decimal(14, 2) // positive = credit, negative = debit
+  balanceAfter Decimal     @db.Decimal(14, 2)
+  createdAt    DateTime    @default(now())
+  account      BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt])
+}
+
+model SecurityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  event     String // LOGIN_SUCCESS, 2FA_ENABLED, 2FA_DISABLED, etc.
+  details   String?
+  ip        String
+  userAgent String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

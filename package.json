@@ -1,0 +1,25 @@
+{
+  "name": "phsecure-bank",
+  "private": true,
+  "description": "PHSecure Bank — online banking with multi-method two-factor authentication",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:seed": "npm run db:seed -w server"
+  },
+  "allowScripts": {
+    "prisma@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "@prisma/client@6.19.3": true,
+    "bcrypt@6.0.0": true
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
+}
