@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext.jsx";
 import Logo from "./Logo.jsx";
-import { cx } from "./ui.jsx";
+import Modal from "./Modal.jsx";
+import { Button, cx } from "./ui.jsx";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard" },
@@ -24,7 +25,14 @@ const initials = (name = "") =>
 export default function AppLayout() {
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const { pathname } = useLocation();
+
+  // From the phone menu too: the menu closes so the confirmation isn't stacked on top of it.
+  const askToSignOut = () => {
+    setOpen(false);
+    setConfirmingSignOut(true);
+  };
 
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
@@ -67,7 +75,7 @@ export default function AppLayout() {
             </p>
             <button
               type="button"
-              onClick={signOut}
+              onClick={askToSignOut}
               className="ml-2 inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3.5 text-[13px] font-medium text-ink transition-colors hover:border-ink"
             >
               <LogOut className="size-3.5" aria-hidden /> Sign out
@@ -108,11 +116,30 @@ export default function AppLayout() {
               <p className="text-[15px] font-semibold text-white">{user?.fullName}</p>
               <p className="text-[13px] text-white/55">{user?.maskedEmail}</p>
             </div>
-            <button type="button" onClick={signOut} className="rounded-full border border-white/25 px-4 py-2 text-[13px] font-medium text-white">
+            <button type="button" onClick={askToSignOut} className="rounded-full border border-white/25 px-4 py-2 text-[13px] font-medium text-white">
               Sign out
             </button>
           </div>
         </div>
+      )}
+
+      {confirmingSignOut && (
+        <Modal title="Sign out of PHSecure?" onClose={() => setConfirmingSignOut(false)}>
+          <p className="text-[15px] leading-relaxed text-muted">You'll need to sign in again to see your accounts.</p>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <Button variant="outline" onClick={() => setConfirmingSignOut(false)} data-autofocus>
+              Stay signed in
+            </Button>
+            <Button
+              onClick={() => {
+                setConfirmingSignOut(false);
+                signOut();
+              }}
+            >
+              <LogOut className="size-4" aria-hidden /> Sign out
+            </Button>
+          </div>
+        </Modal>
       )}
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-8 lg:py-12">

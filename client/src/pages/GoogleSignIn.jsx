@@ -3,7 +3,8 @@ import { Navigate, useNavigate } from "react-router";
 import { errorMessage } from "../api/client.js";
 import { auth } from "../api/endpoints.js";
 import AuthShell from "../components/AuthShell.jsx";
-import { Alert, ButtonLink, Spinner } from "../components/ui.jsx";
+import FullScreenLoader from "../components/FullScreenLoader.jsx";
+import { Alert, ButtonLink } from "../components/ui.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 /** Where the server sends the browser back after Google: #token=… to redeem once, or #error=… to show. */
@@ -33,23 +34,16 @@ export default function GoogleSignIn() {
   }, [params, navigate, signIn]);
 
   if (!error && !params.get("token")) return <Navigate to="/login" replace />;
+  // Same screen as the "Signing you in…" transition that follows, so the hand-off is seamless.
+  if (!error) return <FullScreenLoader message="Signing you in with Google…" />;
 
   return (
     <AuthShell>
-      {error ? (
-        <>
-          <h1 className="text-[30px] leading-tight font-semibold">Google sign-in didn't finish</h1>
-          <Alert className="mt-6">{error}</Alert>
-          <ButtonLink to="/login" className="mt-6 w-full" size="lg">
-            Back to sign in
-          </ButtonLink>
-        </>
-      ) : (
-        <div className="flex flex-col items-center gap-4 py-10 text-center" aria-live="polite">
-          <Spinner />
-          <p className="text-[15px] text-muted">Signing you in with Google…</p>
-        </div>
-      )}
+      <h1 className="text-[30px] leading-tight font-semibold">Google sign-in didn't finish</h1>
+      <Alert className="mt-6">{error}</Alert>
+      <ButtonLink to="/login" className="mt-6 w-full" size="lg">
+        Back to sign in
+      </ButtonLink>
     </AuthShell>
   );
 }
