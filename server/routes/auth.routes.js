@@ -11,6 +11,9 @@ authRoutes.post("/register", credentialLimiter(), validate(schemas.register), au
 authRoutes.post("/verify-email", credentialLimiter(), validate(schemas.verifyEmail), auth.verifyEmail);
 authRoutes.post("/verify-email/resend", validate(schemas.resendVerification), auth.resendVerification);
 authRoutes.post("/login", credentialLimiter(), validate(schemas.login), auth.login);
+authRoutes.get("/google", auth.googleStart);
+authRoutes.get("/google/callback", auth.googleCallback);
+authRoutes.post("/google/finish", credentialLimiter(), validate(schemas.googleFinish), auth.googleFinish);
 authRoutes.post("/2fa/send", validate(schemas.send2fa), auth.send2fa);
 authRoutes.post("/2fa/passkey/options", validate(schemas.passkeyOptions), auth.passkeyLoginOptions);
 authRoutes.post("/2fa/verify", credentialLimiter(), validate(schemas.verify2fa), auth.verify2fa);

@@ -18,7 +18,10 @@ model User {
   emailVerified    Boolean           @default(false)
   phone            String?
   phoneVerified    Boolean           @default(false)
-  passwordHash     String
+  // Null for accounts opened with Google, which sign in there instead of with a password.
+  passwordHash     String?
+  // Google's stable account ID ("sub"), set once the user signs in with Google.
+  googleSub        String?           @unique
   twoFactorOn      Boolean           @default(false)
   defaultMethod    TwoFactorType?
   failedAttempts   Int               @default(0)

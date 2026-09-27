@@ -21,6 +21,8 @@ export function publicUser(user) {
     phoneVerified: user.phoneVerified,
     twoFactorOn: user.twoFactorOn,
     defaultMethod: user.defaultMethod,
+    hasPassword: Boolean(user.passwordHash),
+    googleLinked: Boolean(user.googleSub),
     createdAt: user.createdAt,
   };
 }

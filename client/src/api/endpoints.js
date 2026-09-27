@@ -7,6 +7,7 @@ export const auth = {
   verifyEmail: (verificationToken, code) => data(api.post("/auth/verify-email", { verificationToken, code })),
   resendVerification: (verificationToken) => data(api.post("/auth/verify-email/resend", { verificationToken })),
   login: (email, password) => data(api.post("/auth/login", { email, password })),
+  googleFinish: (token) => data(api.post("/auth/google/finish", { token })),
   send2fa: (challengeToken, method) => data(api.post("/auth/2fa/send", { challengeToken, method })),
   passkeyOptions: (challengeToken) => data(api.post("/auth/2fa/passkey/options", { challengeToken })),
   verify2fa: (body) => data(api.post("/auth/2fa/verify", body)),

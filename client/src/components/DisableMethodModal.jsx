@@ -2,15 +2,17 @@ import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { errorMessage } from "../api/client.js";
 import { twofa } from "../api/endpoints.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { METHODS } from "../lib/methods.js";
 import EmailCodeStep from "./EmailCodeStep.jsx";
 import Modal from "./Modal.jsx";
 import { Alert, Button, Field, Input } from "./ui.jsx";
 
-/** Turning a method off: current password → emailed code → done. */
+/** Turning a method off: current password (accounts opened with Google have none) → emailed code → done. */
 export default function DisableMethodModal({ method, status, onClose, onStatus }) {
   const meta = METHODS[method];
   const isLast = status.methods.filter((m) => m.enabled).length === 1;
+  const needsPassword = useAuth().user?.hasPassword !== false;
   const [step, setStep] = useState("password");
   const [password, setPassword] = useState("");
   const [request, setRequest] = useState(null);
@@ -41,24 +43,30 @@ export default function DisableMethodModal({ method, status, onClose, onStatus }
               <TriangleAlert className="size-5 shrink-0 text-danger" aria-hidden />
               <p>
                 This is your only security method. Turning it off <strong className="font-semibold">turns two-factor authentication off</strong> and deletes your Vault
-                Codes — your password alone will protect your account.
+                Codes — your {needsPassword ? "password" : "Google sign-in"} alone will protect your account.
               </p>
             </div>
           ) : (
-            <p className="text-[15px] leading-relaxed text-muted">Enter your password, then the code we email you, to turn off {meta.name}.</p>
+            <p className="text-[15px] leading-relaxed text-muted">
+              {needsPassword ? "Enter your password, then the code we email you," : "Confirm with the code we email you"} to turn off {meta.name}.
+            </p>
           )}
-          <Field label="Current password" htmlFor="disable-password" error={error}>
-            <Input
-              id="disable-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-invalid={Boolean(error) || undefined}
-              required
-            />
-          </Field>
-          <Button type="submit" variant={isLast ? "danger" : "primary"} className="w-full" loading={busy} disabled={!password}>
+          {needsPassword ? (
+            <Field label="Current password" htmlFor="disable-password" error={error}>
+              <Input
+                id="disable-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={Boolean(error) || undefined}
+                required
+              />
+            </Field>
+          ) : (
+            error && <Alert>{error}</Alert>
+          )}
+          <Button type="submit" variant={isLast ? "danger" : "primary"} className="w-full" loading={busy} disabled={needsPassword && !password}>
             Continue
           </Button>
         </form>

@@ -60,8 +60,9 @@ client/src/
 ## Flows
 
 - **Turning a method on:** toggle → emailed code → short-lived setup token → method setup (TOTP QR / phone + SMS code / passkey prompt) → on. The first method also creates 10 Vault Codes, shown once with Download and Copy. The toggle only flips once the server confirms.
-- **Turning a method off:** current password → emailed code → off, plus a `2fa-disabled-alert` email. Turning off the last method turns 2FA off and deletes the Vault Codes.
+- **Turning a method off:** current password (if the account has one) → emailed code → off, plus a `2fa-disabled-alert` email. Turning off the last method turns 2FA off and deletes the Vault Codes.
 - **Sign-in:** password → the default method's screen, with *Try another method* (other methods and *Use a Vault Code*) and *Trust this device for 30 days*.
+- **Continue with Google:** Google replaces the password step only; 2FA still applies. A new Google email opens an account (no password), an existing one is linked by its verified email. The callback hands the SPA a 2-minute token in the URL fragment, bound to the browser by a cookie nonce and redeemed once at `POST /api/auth/google/finish`. Accounts without a password confirm turning a method off with the emailed code alone.
 - **"Lock my account":** every security email links to `/lock`, which signs out every device and blocks sign-in for 24 hours.
 
 ## Additions and interpretations
@@ -80,6 +81,10 @@ These go beyond or interpret the spec:
 - **Approximate location in emails:** comes from Cloudflare or Vercel geo headers when `TRUST_GEO_HEADERS=true`. Otherwise it says *Local network* or *Unknown location*.
 
 ## Production notes
+
+**Vercel** (`vercel.json`): the built client is served from the CDN and `api/index.mjs` runs the Express app as one function behind `/api/*`. Production builds run `prisma migrate deploy`. Set these on the project: `DATABASE_URL` and `DIRECT_URL` (Neon), the four secrets, `BREVO_API_KEY`/`BREVO_SENDER_EMAIL`, `CLIENT_URL`/`WEBAUTHN_RP_ID`/`WEBAUTHN_ORIGIN` for the site's domain, `TRUST_PROXY=1`, `TRUST_GEO_HEADERS=true`, and optionally `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (redirect URI `https://<domain>/api/auth/google/callback`).
+
+**Any other host:**
 
 - Build with `npm run build` and start with `NODE_ENV=production npm start`. Express serves `client/dist`, redirects HTTP to HTTPS, and sends HSTS and `Secure` cookies.
 - Set `TRUST_PROXY` to match your load balancer (for example `1`).

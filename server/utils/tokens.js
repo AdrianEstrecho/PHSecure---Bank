@@ -31,6 +31,7 @@ const PURPOSES = {
   "login-challenge": { expiresIn: "10m", expired: "Your sign-in session expired. Please sign in again." },
   "verify-email": { expiresIn: "30m", expired: "This verification session expired. Please sign in again." },
   lock: { expiresIn: "7d", expired: "This lock link has expired. Sign in to secure your account." },
+  "google-handoff": { expiresIn: "2m", expired: "Your Google sign-in expired. Please try again." },
 };
 
 export function signPurposeToken(purpose, payload) {

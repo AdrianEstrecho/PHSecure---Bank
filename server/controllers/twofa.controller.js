@@ -26,7 +26,7 @@ export const schemas = {
     credential: z.looseObject({ id: z.string() }).optional(),
     deviceName: z.string().trim().min(1).max(40).optional().default("Passkey"),
   }),
-  disableRequest: z.object({ method: methodField, password: z.string().min(1, "Enter your password.").max(128) }),
+  disableRequest: z.object({ method: methodField, password: z.string().max(128).optional().default("") }),
   code: z.object({ code: codeField }),
 };
 
@@ -139,13 +139,14 @@ export async function enableConfirm(req, res) {
   res.json({ method, vaultCodes: vault?.codes ?? null, status: await buildStatus(user.id) });
 }
 
-/** Turning a method off needs the current password first, then an emailed code. */
+/** Turning a method off needs the current password first (if the account has one), then an emailed code. */
 export async function disableRequest(req, res) {
   const user = req.user;
   const { method, password } = req.body;
   if (!(await methodRow(user.id, method))?.enabled) throw badRequest(`${METHOD_NAMES[method]} is already off.`, { code: "NOT_ENABLED" });
 
-  if (!(await compareHash(password, user.passwordHash))) {
+  // Accounts opened with Google have no password to re-enter; the emailed code alone confirms it's them.
+  if (user.passwordHash && !(await compareHash(password, user.passwordHash))) {
     await recordFailedAttempt(req, user, "PASSWORD_CHECK_FAILED", `Turning off ${METHOD_NAMES[method]}`);
     throw badRequest("That password isn't right.", { code: "PASSWORD_INVALID" });
   }

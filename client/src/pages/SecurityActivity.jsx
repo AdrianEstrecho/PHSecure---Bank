@@ -10,8 +10,9 @@ const methodName = (d) => METHODS[d]?.name ?? d;
 
 // label(details) → text, plus an icon and whether the event deserves attention.
 const EVENTS = {
-  ACCOUNT_CREATED: { icon: UserRound, label: () => "Account opened" },
+  ACCOUNT_CREATED: { icon: UserRound, label: (d) => (d ? `Account opened with ${d}` : "Account opened") },
   EMAIL_VERIFIED: { icon: ShieldCheck, label: () => "Email address confirmed" },
+  GOOGLE_LINKED: { icon: ShieldCheck, label: () => "Google account linked for sign-in" },
   LOGIN_SUCCESS: { icon: LogIn, label: (d) => `Signed in${d ? ` · ${d}` : ""}` },
   LOGIN_FAILED: { icon: CircleAlert, warn: true, label: () => "Sign-in failed · wrong password" },
   LOGIN_2FA_FAILED: { icon: CircleAlert, warn: true, label: (d) => `Sign-in failed · wrong ${d ?? "code"}` },

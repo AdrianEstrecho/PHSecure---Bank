@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { config } from "../config.js";
 import { prisma } from "../lib/prisma.js";
 import { assertCsrf } from "../middleware/csrf.js";
 import { logSecurityEvent } from "../services/audit.service.js";
 import { openStarterAccounts } from "../services/account.service.js";
 import { WRONG_CODE_ERRORS, issueCode, verifyCode } from "../services/code.service.js";
 import { findDevice, isTrusted, recognizeDevice } from "../services/device.service.js";
+import { googleAuthRequest, googleIdentity } from "../services/google.service.js";
 import { assertNotLocked, clearFailedAttempts, recordFailedAttempt } from "../services/lockout.service.js";
 import { formatTime, sendCodeEmail, sendCodeSms, sendSecurityAlert } from "../services/notify.service.js";
 import { passkeyAuthenticationOptions, verifyPasskeyAuthentication } from "../services/passkey.service.js";
@@ -12,8 +14,8 @@ import { clearSessionCookies, createSession, publicUser, revokeAllSessions, revo
 import { verifyTotp } from "../services/totp.service.js";
 import { enabledMethodTypes } from "../services/twofa.service.js";
 import { consumeVaultCode } from "../services/vault.service.js";
-import { REFRESH_COOKIE } from "../utils/cookies.js";
-import { DUMMY_PASSWORD_HASH, compareHash, hashPassword } from "../utils/crypto.js";
+import { GOOGLE_HANDOFF_COOKIE, GOOGLE_STATE_COOKIE, REFRESH_COOKIE, googleCookieOptions } from "../utils/cookies.js";
+import { DUMMY_PASSWORD_HASH, compareHash, hashPassword, randomToken, safeEqual, sha256 } from "../utils/crypto.js";
 import { HttpError, badRequest, conflict, unauthorized } from "../utils/errors.js";
 import { maskEmail, maskPhone } from "../utils/mask.js";
 import { METHOD_NAMES } from "../utils/methods.js";
@@ -50,6 +52,7 @@ export const schemas = {
       if (v.method === "PASSKEY" && !v.credential) ctx.addIssue({ code: "custom", path: ["credential"], message: "Passkey response missing." });
     }),
   lock: z.object({ token: tokenField }),
+  googleFinish: z.object({ token: tokenField }),
 };
 
 const invalidCredentials = () => unauthorized("That email and password don't match our records.", { code: "INVALID_CREDENTIALS" });
@@ -130,7 +133,9 @@ export async function login(req, res) {
   }
   assertNotLocked(user);
 
-  if (!(await compareHash(password, user.passwordHash))) {
+  // Accounts opened with Google have no password; they fail the same way (and take as long) as a wrong one.
+  const matches = await compareHash(password, user.passwordHash ?? DUMMY_PASSWORD_HASH);
+  if (!matches || !user.passwordHash) {
     await recordFailedAttempt(req, user, "LOGIN_FAILED", "Wrong password");
     throw invalidCredentials();
   }
@@ -148,20 +153,93 @@ export async function login(req, res) {
     });
   }
 
+  res.json(await afterFirstFactor(req, res, user, { verifiedWith: "Password" }));
+}
+
+/** After the password (or Google): a 2FA challenge, unless no method is on or this device is trusted. */
+async function afterFirstFactor(req, res, user, { verifiedWith, alertNewDevice = true }) {
   const methods = user.twoFactorOn ? await enabledMethodTypes(user.id) : [];
   const device = await findDevice(req, user.id);
   if (!methods.length || isTrusted(device)) {
-    return res.json(await completeLogin(req, res, user, { verifiedWith: methods.length ? "Trusted device" : "Password" }));
+    return completeLogin(req, res, user, { verifiedWith: methods.length ? "Trusted device" : verifiedWith, alertNewDevice });
   }
 
-  res.json({
+  return {
     requires2FA: true,
     challengeToken: signPurposeToken("login-challenge", { sub: user.id }),
     methods,
     default: methods.includes(user.defaultMethod) ? user.defaultMethod : methods[0],
     maskedEmail: maskEmail(user.email),
     maskedPhone: maskPhone(user.phone),
+  };
+}
+
+// "Continue with Google" is a full-page round trip, so the callback can't answer the SPA directly. It hands over a
+// two-minute token in the URL fragment, bound to this browser by a cookie nonce; POST /google/finish redeems it once.
+const googleResult = (fragment) => `${config.clientUrl}/login/google#${new URLSearchParams(fragment)}`;
+const googleCookieBase = { ...googleCookieOptions, maxAge: undefined };
+
+export function googleStart(req, res) {
+  if (!config.googleEnabled) return res.redirect(303, googleResult({ error: "Google sign-in isn't set up on this server yet." }));
+  const { url, state, verifier } = googleAuthRequest();
+  res.cookie(GOOGLE_STATE_COOKIE, { state, verifier }, googleCookieOptions);
+  res.redirect(303, url);
+}
+
+/** Finds the account for a Google identity: already linked, linked now by verified email, or opened now. */
+async function googleUser(req, { sub, email, fullName }) {
+  const linked = await prisma.user.findUnique({ where: { googleSub: sub } });
+  if (linked) return { user: linked, isNew: false };
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    // Google has verified the address, which is all our own email check proves.
+    const user = await prisma.user.update({ where: { id: existing.id }, data: { googleSub: sub, emailVerified: true } });
+    await logSecurityEvent(user.id, "GOOGLE_LINKED", req);
+    return { user, isNew: false };
+  }
+
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({ data: { fullName, email, emailVerified: true, googleSub: sub } });
+    await openStarterAccounts(created.id, tx);
+    return created;
   });
+  await logSecurityEvent(user.id, "ACCOUNT_CREATED", req, "Google");
+  return { user, isNew: true };
+}
+
+export async function googleCallback(req, res) {
+  const saved = req.signedCookies?.[GOOGLE_STATE_COOKIE];
+  res.clearCookie(GOOGLE_STATE_COOKIE, googleCookieBase);
+  try {
+    if (req.query.error) throw badRequest("Google sign-in was cancelled.", { code: "GOOGLE_CANCELLED" });
+    if (!saved?.state || !safeEqual(saved.state, req.query.state ?? "")) {
+      throw badRequest("Your Google sign-in expired. Please try again.", { code: "GOOGLE_STATE_MISMATCH" });
+    }
+    const { user, isNew } = await googleUser(req, await googleIdentity(String(req.query.code ?? ""), saved.verifier));
+    assertNotLocked(user);
+
+    const nonce = randomToken(24);
+    res.cookie(GOOGLE_HANDOFF_COOKIE, nonce, googleCookieOptions);
+    res.redirect(303, googleResult({ token: signPurposeToken("google-handoff", { sub: user.id, nonce: sha256(nonce), isNew }) }));
+  } catch (err) {
+    if (!(err instanceof HttpError)) console.error("Google sign-in failed:", err);
+    res.redirect(303, googleResult({ error: err instanceof HttpError ? err.message : "Google sign-in failed. Please try again." }));
+  }
+}
+
+export async function googleFinish(req, res) {
+  const { sub, nonce, isNew } = verifyPurposeToken("google-handoff", req.body.token);
+  const cookie = req.signedCookies?.[GOOGLE_HANDOFF_COOKIE];
+  res.clearCookie(GOOGLE_HANDOFF_COOKIE, googleCookieBase);
+  if (!cookie || !safeEqual(sha256(cookie), nonce)) {
+    throw unauthorized("Your Google sign-in expired. Please try again.", { code: "GOOGLE_HANDOFF_EXPIRED" });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: sub } });
+  if (!user) throw unauthorized();
+  assertNotLocked(user);
+  res.json(await afterFirstFactor(req, res, user, { verifiedWith: "Google", alertNewDevice: !isNew }));
 }
 
 async function challengeUser(challengeToken) {

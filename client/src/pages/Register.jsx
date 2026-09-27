@@ -4,6 +4,7 @@ import { errorDetails, errorMessage } from "../api/client.js";
 import { auth } from "../api/endpoints.js";
 import AuthShell from "../components/AuthShell.jsx";
 import EmailCodeStep from "../components/EmailCodeStep.jsx";
+import GoogleButton from "../components/GoogleButton.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
 import { Alert, Button, Eyebrow, Field, Input, cx } from "../components/ui.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -106,6 +107,7 @@ export default function Register() {
           Create account
         </Button>
       </form>
+      <GoogleButton />
 
       <p className="mt-8 text-center text-[14px] text-muted">
         Already a client?{" "}
