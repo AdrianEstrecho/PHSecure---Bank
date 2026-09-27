@@ -6,3 +6,5 @@ client/dist/
 server/dev-outbox/
 *.log
 .DS_Store
+
+.vercel
