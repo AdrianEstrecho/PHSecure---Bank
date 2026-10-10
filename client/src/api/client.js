@@ -65,3 +65,9 @@ export const errorMessage = (err, fallback = "Something went wrong. Please try a
 
 export const errorCode = (err) => err?.response?.data?.error?.code;
 export const errorDetails = (err) => err?.response?.data?.error?.details ?? {};
+
+/** { field: message } for a validation-style error (details: [{ path, message }]), or null for any other error. */
+export function fieldErrors(err) {
+  const details = errorDetails(err);
+  return Array.isArray(details) && details.length ? Object.fromEntries(details.map((i) => [i.path, i.message])) : null;
+}

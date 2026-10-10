@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { errorDetails, errorMessage } from "../api/client.js";
+import { errorMessage, fieldErrors } from "../api/client.js";
 import { auth } from "../api/endpoints.js";
 import AuthShell from "../components/AuthShell.jsx";
 import EmailCodeStep from "../components/EmailCodeStep.jsx";
@@ -29,8 +29,8 @@ export default function Register() {
     try {
       setPending(await auth.register(form));
     } catch (err) {
-      const issues = Array.isArray(errorDetails(err)) ? errorDetails(err) : [];
-      if (issues.length) setErrors(Object.fromEntries(issues.map((i) => [i.path, i.message])));
+      const fields = fieldErrors(err);
+      if (fields) setErrors(fields);
       else setFormError(errorMessage(err));
     } finally {
       setBusy(false);

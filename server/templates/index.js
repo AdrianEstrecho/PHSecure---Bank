@@ -91,6 +91,16 @@ export const templates = {
       introText: "Use this code to finish signing in to your PHSecure account.",
     }),
 
+  "reset-password-code": (d) =>
+    codeEmail({
+      ...d,
+      subject: "Reset your PHSecure password",
+      heading: "Reset your password",
+      preheader: `${d.code} is your code to reset your password`,
+      intro: "We got a request to reset the password for your PHSecure account. Enter this code to choose a new one. If you didn't ask for this, ignore this email — your password stays the same.",
+      introText: "We got a request to reset the password for your PHSecure account. Enter this code to choose a new one. If you didn't ask for this, ignore this email — your password stays the same.",
+    }),
+
   "vault-regenerate-code": (d) =>
     codeEmail({
       ...d,
@@ -129,17 +139,24 @@ export const templates = {
       extraRows: [["Method", d.methodName]],
     }),
 
+  // Sent after a change from Profile → Security, or (with `reset`) after "Forgot password?".
   "password-changed": (d) => {
-    const signedOut = d.signedOut
-      ? `We also signed out ${d.signedOut === 1 ? "1 other device" : `${d.signedOut} other devices`}, which will need the new password to sign back in.`
-      : "Use your new password the next time you sign in.";
+    const what = d.reset ? "reset" : "changed";
+    const intro = d.reset
+      ? "The password for your PHSecure account was just reset with a code sent to this email."
+      : "The password for your PHSecure account was just changed.";
+    const signedOut = d.reset
+      ? "Every device that was signed in has been signed out and will need the new password."
+      : d.signedOut
+        ? `We also signed out ${d.signedOut === 1 ? "1 other device" : `${d.signedOut} other devices`}, which will need the new password to sign back in.`
+        : "Use your new password the next time you sign in.";
     return alertEmail({
       ...d,
-      subject: "Your PHSecure password was changed",
-      heading: "Your password was changed",
-      preheader: "The password for your PHSecure account was just changed",
-      paragraphs: ["The password for your PHSecure account was just changed.", esc(signedOut)],
-      textParagraphs: ["The password for your PHSecure account was just changed.", signedOut],
+      subject: `Your PHSecure password was ${what}`,
+      heading: `Your password was ${what}`,
+      preheader: `The password for your PHSecure account was just ${what}`,
+      paragraphs: [esc(intro), esc(signedOut)],
+      textParagraphs: [intro, signedOut],
     });
   },
 

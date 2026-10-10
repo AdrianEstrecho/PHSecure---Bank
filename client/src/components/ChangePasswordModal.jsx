@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { errorDetails, errorMessage } from "../api/client.js";
+import { errorMessage, fieldErrors } from "../api/client.js";
 import { security } from "../api/endpoints.js";
 import Modal from "./Modal.jsx";
+import NewPasswordFields from "./NewPasswordFields.jsx";
 import PasswordInput from "./PasswordInput.jsx";
-import PasswordMeter from "./PasswordMeter.jsx";
 import { Alert, Button, Field } from "./ui.jsx";
 
 const EMPTY = { currentPassword: "", newPassword: "", confirmPassword: "" };
@@ -17,7 +17,6 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
   const [signedOut, setSignedOut] = useState(null); // number of other devices signed out, once changed
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-  const invalid = (key) => Boolean(errors[key]) || undefined;
 
   async function submit(e) {
     e.preventDefault();
@@ -35,8 +34,8 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
       setSignedOut(result.signedOut);
       onChanged(result);
     } catch (err) {
-      const issues = Array.isArray(errorDetails(err)) ? errorDetails(err) : [];
-      if (issues.length) setErrors(Object.fromEntries(issues.map((i) => [i.path, i.message])));
+      const fields = fieldErrors(err);
+      if (fields) setErrors(fields);
       else setFormError(errorMessage(err));
     } finally {
       setBusy(false);
@@ -73,24 +72,11 @@ export default function ChangePasswordModal({ onClose, onChanged }) {
             autoComplete="current-password"
             value={form.currentPassword}
             onChange={set("currentPassword")}
-            aria-invalid={invalid("currentPassword")}
+            aria-invalid={Boolean(errors.currentPassword) || undefined}
             required
           />
         </Field>
-        <Field label="New password" htmlFor="new-password" error={errors.newPassword}>
-          <PasswordInput id="new-password" autoComplete="new-password" value={form.newPassword} onChange={set("newPassword")} aria-invalid={invalid("newPassword")} required />
-        </Field>
-        <PasswordMeter password={form.newPassword} />
-        <Field label="Confirm new password" htmlFor="confirm-password" error={errors.confirmPassword}>
-          <PasswordInput
-            id="confirm-password"
-            autoComplete="new-password"
-            value={form.confirmPassword}
-            onChange={set("confirmPassword")}
-            aria-invalid={invalid("confirmPassword")}
-            required
-          />
-        </Field>
+        <NewPasswordFields form={form} set={set} errors={errors} />
 
         {formError && <Alert>{formError}</Alert>}
 

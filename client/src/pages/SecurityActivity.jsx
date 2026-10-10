@@ -22,6 +22,7 @@ const EVENTS = {
   DEVICE_SIGNED_OUT: { icon: LogOut, label: (d) => `Signed out another device${d ? ` · ${d}` : ""}` },
   OTHER_DEVICES_SIGNED_OUT: { icon: LogOut, label: (d) => `Signed out everywhere else${d ? ` · ${d}` : ""}` },
   PASSWORD_CHANGED: { icon: LockKeyhole, label: (d) => `Password changed${d ? ` · ${d}` : ""}` },
+  PASSWORD_RESET: { icon: LockKeyhole, warn: true, label: () => "Password reset with an emailed code · every device signed out" },
   ACCOUNT_LOCKED: { icon: CircleAlert, warn: true, label: () => "Account locked after failed attempts" },
   ACCOUNT_LOCKED_BY_USER: { icon: CircleAlert, warn: true, label: () => "Account locked from email link" },
   "2FA_ENABLED": { icon: ShieldCheck, label: (d) => `${methodName(d)} turned on` },

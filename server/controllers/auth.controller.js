@@ -1,10 +1,11 @@
+import crypto from "node:crypto";
 import { z } from "zod";
 import { config } from "../config.js";
 import { prisma } from "../lib/prisma.js";
 import { assertCsrf } from "../middleware/csrf.js";
 import { logSecurityEvent } from "../services/audit.service.js";
 import { openStarterAccounts } from "../services/account.service.js";
-import { WRONG_CODE_ERRORS, issueCode, verifyCode } from "../services/code.service.js";
+import { RESEND_COOLDOWN_SECONDS, WRONG_CODE_ERRORS, issueCode, verifyCode } from "../services/code.service.js";
 import { findDevice, isTrusted, recognizeDevice } from "../services/device.service.js";
 import { googleAuthRequest, googleIdentity } from "../services/google.service.js";
 import { assertNotLocked, clearFailedAttempts, recordFailedAttempt } from "../services/lockout.service.js";
@@ -53,6 +54,9 @@ export const schemas = {
     }),
   lock: z.object({ token: tokenField }),
   googleFinish: z.object({ token: tokenField }),
+  forgotPassword: z.object({ email: emailField }),
+  verifyResetCode: z.object({ email: emailField, code: codeField }),
+  resetPassword: z.object({ resetToken: tokenField, newPassword: passwordField }),
 };
 
 const invalidCredentials = () => unauthorized("That email and password don't match our records.", { code: "INVALID_CREDENTIALS" });
@@ -352,4 +356,57 @@ export async function lockAccount(req, res) {
   await logSecurityEvent(user.id, "ACCOUNT_LOCKED_BY_USER", req);
   sendSecurityAlert("account-locked", { user, req, byUser: true, until: formatTime(lockedUntil), withLockLink: false });
   res.json({ locked: true, lockedUntil });
+}
+
+// ── Forgot password: emailed code → short-lived reset token → new password ──
+
+/**
+ * Ties a reset token to the password it replaces, so the token stops working once it has been used (or the
+ * password changes some other way). Keyed, so the token can't be used to test guesses at the old password.
+ */
+const passwordFingerprint = (user) => crypto.createHmac("sha256", config.JWT_ACCESS_SECRET).update(user.passwordHash ?? "").digest("base64url");
+
+// Wording and shape never depend on whether the email has an account, so this can't be used to find out who banks here.
+export async function forgotPassword(req, res) {
+  const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+  if (!user) return res.json({ resendIn: RESEND_COOLDOWN_SECONDS });
+  try {
+    const { resendIn } = await issueCode({ userId: user.id, purpose: "RESET_PASSWORD" }, (code) => sendCodeEmail("reset-password-code", { user, req, ...code }));
+    res.json({ resendIn });
+  } catch (err) {
+    // A cooldown or the hourly cap would otherwise give the account away; the client just shows the wait.
+    if (err.code === "RESEND_COOLDOWN" || err.code === "CODE_LIMIT") return res.json({ resendIn: err.details.retryAfter });
+    throw err;
+  }
+}
+
+export async function verifyResetCode(req, res) {
+  const { email, code } = req.body;
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) throw badRequest("That code isn't right.", { code: "CODE_INVALID" });
+  await verifyCode({ userId: user.id, purpose: "RESET_PASSWORD", code });
+  res.json({ resetToken: signPurposeToken("password-reset", { sub: user.id, pwv: passwordFingerprint(user) }) });
+}
+
+/**
+ * Sets the new password and signs out every device. It doesn't sign the user in: they do that next with the
+ * new password, and two-factor authentication still applies. Accounts opened with Google get a password this way.
+ */
+export async function resetPassword(req, res) {
+  const { sub, pwv } = verifyPurposeToken("password-reset", req.body.resetToken);
+  const user = await prisma.user.findUnique({ where: { id: sub } });
+  if (!user || !safeEqual(passwordFingerprint(user), pwv)) {
+    throw unauthorized("This password reset has already been used. Please start again.", { code: "PASSWORD_RESET_EXPIRED" });
+  }
+
+  const passwordHash = await hashPassword(req.body.newPassword);
+  await prisma.$transaction([
+    // The emailed code proved the address, which is all verifying it would.
+    prisma.user.update({ where: { id: user.id }, data: { passwordHash, emailVerified: true } }),
+    revokeAllSessions(user.id),
+    prisma.device.updateMany({ where: { userId: user.id }, data: { trustedUntil: null } }),
+  ]);
+  await logSecurityEvent(user.id, "PASSWORD_RESET", req);
+  sendSecurityAlert("password-changed", { user, req, reset: true });
+  res.json({ reset: true });
 }

@@ -3,6 +3,7 @@ import AppLayout from "./components/AppLayout.jsx";
 import { PublicOnly, RequireAuth } from "./components/RouteGuards.jsx";
 import Accounts from "./pages/Accounts.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
 import GoogleSignIn from "./pages/GoogleSignIn.jsx";
 import Landing from "./pages/Landing.jsx";
 import LockAccount from "./pages/LockAccount.jsx";
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/login/verify" element={<TwoFactorChallenge />} />
         <Route path="/login/google" element={<GoogleSignIn />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
 
       <Route element={<RequireAuth />}>

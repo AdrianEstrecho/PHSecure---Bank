@@ -15,9 +15,9 @@ const check = (cond, label, extra) => {
 };
 
 class Client {
-  constructor() { this.jar = new Map(); this.token = null; }
+  constructor(headers = {}) { this.jar = new Map(); this.token = null; this.headers = headers; }
   async req(method, path, body, headers = {}) {
-    const h = { "content-type": "application/json", ...headers };
+    const h = { "content-type": "application/json", ...this.headers, ...headers };
     if (this.jar.size) h.cookie = [...this.jar].map(([k, v]) => `${k}=${v}`).join("; ");
     if (this.token) h.authorization = `Bearer ${this.token}`;
     const csrf = this.jar.get("aur_csrf");
@@ -350,6 +350,45 @@ r = await a.get("/auth/me");
 check(r.status === 401 && r.data.error.code === "AUTH_REVOKED", "existing access token revoked", r.data);
 r = await a.post("/auth/refresh");
 check(r.status === 401, "refresh session revoked");
+
+// ── Forgot password ───────────────────────────────────────────
+// From other client IPs (the server trusts X-Forwarded-For from loopback), so these sign-ins don't hit the
+// per-IP login limit the lockout test used up.
+await prisma.user.update({ where: { email }, data: { lockedUntil: null } });
+const f = new Client({ "x-forwarded-for": "198.51.100.7" });
+r = await f.post("/auth/login", { email, password: newPassword });
+f.token = r.data?.accessToken;
+check(r.status === 200 && f.token, "a device is signed in before the reset", r.data);
+const g = new Client({ "x-forwarded-for": "198.51.100.8" });
+r = await g.post("/auth/password/forgot", { email: "nobody@example.com" });
+const unknownReply = r;
+r = await g.post("/auth/password/forgot", { email: email.toUpperCase() });
+check(r.status === 200 && unknownReply.status === 200 && Object.keys(r.data).join() === Object.keys(unknownReply.data).join(), "forgot: same reply whether or not the account exists", [r.data, unknownReply.data]);
+c = await latestCode(email, "Reset your PHSecure password");
+check(Boolean(c?.code), "reset code emailed");
+r = await g.post("/auth/password/forgot", { email });
+check(r.status === 200 && r.data.resendIn > 0 && r.data.resendIn <= 60, "a cooldown doesn't give the account away either", r.data);
+r = await g.post("/auth/password/reset/verify", { email: "nobody@example.com", code: c.code });
+check(r.status === 400 && r.data.error.code === "CODE_INVALID", "unknown email: code rejected", r.data);
+r = await g.post("/auth/password/reset/verify", { email, code: c.code === "000000" ? "111111" : "000000" });
+check(r.status === 400 && r.data.error.code === "CODE_INVALID", "wrong reset code rejected", r.data);
+r = await g.post("/auth/password/reset/verify", { email, code: c.code });
+check(r.status === 200 && r.data.resetToken, "reset code → reset token", r.data);
+const resetToken = r.data.resetToken;
+r = await g.post("/auth/password/reset", { resetToken, newPassword: "short" });
+check(r.status === 400 && r.data.error.code === "VALIDATION", "reset needs a strong password", r.data);
+const resetPassword = "Reset-Pass-2026";
+r = await g.post("/auth/password/reset", { resetToken, newPassword: resetPassword });
+check(r.status === 200 && r.data.reset && !g.jar.has("aur_rt"), "password reset (not signed in)", r.data);
+r = await g.post("/auth/password/reset", { resetToken, newPassword: "Second-Reset-2026" });
+check(r.status === 401 && r.data.error.code === "PASSWORD_RESET_EXPIRED", "reset token works once", r.data);
+r = await f.get("/auth/me");
+check(r.status === 401 && r.data.error.code === "AUTH_REVOKED", "reset signs out every device", r.data);
+check((await outbox()).some((m) => m.to === email && m.subject === "Your PHSecure password was reset"), "password-reset alert emailed");
+r = await g.post("/auth/login", { email, password: newPassword });
+check(r.status === 401, "previous password no longer works");
+r = await g.post("/auth/login", { email, password: resetPassword });
+check(r.status === 200 && r.data.accessToken, "sign in with the reset password", r.data);
 
 await prisma.$disconnect();
 console.log(`\n${failures ? `✗ ${failures} failure(s)` : "✓ all checks passed"}`);

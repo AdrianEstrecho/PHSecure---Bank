@@ -14,7 +14,8 @@ export default function Login() {
   const location = useLocation();
   const { signIn } = useAuth();
   const from = location.state?.from ?? "/dashboard";
-  const [email, setEmail] = useState("");
+  // After "Forgot password?" the reset page sends the user back here with their email and a notice.
+  const [email, setEmail] = useState(location.state?.email ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -66,6 +67,11 @@ export default function Login() {
     <AuthShell>
       <h1 className="text-[32px] leading-tight font-semibold">Welcome back</h1>
       <p className="mt-2 text-[15px] text-muted">Sign in to your PHSecure account.</p>
+      {location.state?.notice && (
+        <Alert tone="success" className="mt-6">
+          {location.state.notice}
+        </Alert>
+      )}
 
       <form onSubmit={submit} className="mt-8 space-y-5">
         <Field label="Email" htmlFor="email">
@@ -74,6 +80,11 @@ export default function Login() {
         <Field label="Password" htmlFor="password">
           <PasswordInput id="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </Field>
+        <p className="-mt-2 text-right text-[13.5px]">
+          <Link to="/forgot-password" state={{ email }} className="font-medium text-ink underline decoration-lime underline-offset-4">
+            Forgot password?
+          </Link>
+        </p>
         {error && <Alert>{error}</Alert>}
         <Button type="submit" className="w-full" size="lg" loading={busy}>
           Sign in

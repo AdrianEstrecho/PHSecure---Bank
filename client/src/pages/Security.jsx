@@ -182,7 +182,7 @@ export default function Security() {
             Password
           </h3>
           <p className="mt-1 text-[14px] text-muted">
-            {user.hasPassword ? "Changing it signs you out on every other device." : "You sign in with Google, so this account has no password."}
+            {user.hasPassword ? "Changing it signs you out on every other device." : "You sign in with Google, so this account has no password. To add one, use Forgot password? on the sign-in page."}
           </p>
         </div>
         {user.hasPassword && (

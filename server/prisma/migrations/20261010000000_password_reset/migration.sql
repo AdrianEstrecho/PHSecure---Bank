@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "CodePurpose" ADD VALUE 'RESET_PASSWORD';

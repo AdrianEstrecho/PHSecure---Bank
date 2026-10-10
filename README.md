@@ -65,7 +65,8 @@ client/src/
 - **Sign-in:** password → the default method's screen, with *Try another method* (other methods and *Use a Vault Code*) and *Trust this device for 30 days*.
 - **Continue with Google:** Google replaces the password step only; 2FA still applies. A new Google email opens an account (no password), an existing one is linked by its verified email. The callback hands the SPA a 2-minute token in the URL fragment, bound to the browser by a cookie nonce and redeemed once at `POST /api/auth/google/finish`. Accounts without a password confirm turning a method off with the emailed code alone.
 - **"Lock my account":** every security email links to `/lock`, which signs out every device and blocks sign-in for 24 hours.
-- **Changing your password** (Profile → Security → Password): current password, then a new one under the same rules as sign-up. Every other device is signed out and no longer trusted, and a `password-changed` alert is emailed. Accounts opened with Google have no password, so the card says so instead.
+- **Changing your password** (Profile → Security → Password): current password, then a new one under the same rules as sign-up. Every other device is signed out and no longer trusted, and a `password-changed` alert is emailed. Accounts opened with Google have no password, so the card points them to *Forgot password?* instead.
+- **Forgot password?** (sign-in page → `/forgot-password`): email → emailed code → a 10-minute reset token → new password. The reply to the first step is the same whether or not the email has an account. Resetting signs out every device, stops trusting them, and emails an alert. It doesn't sign you in, so 2FA still applies at the next sign-in. The reset token is tied to the old password, so it works once. For an account opened with Google, this is how it gets a password.
 - **Signed-in devices** (Profile → Security): every browser with an active session, with its IP and last activity. Sign out one device, or *Sign out everywhere else*. Either way those devices stop being trusted, so signing back in on them needs 2FA again. Access tokens carry their session ID and `requireAuth` checks the session on every request, so a signed-out device is turned away on its next request instead of when its 15-minute token runs out.
 
 ## Additions and interpretations
@@ -80,6 +81,7 @@ These go beyond or interpret the spec:
   - `POST /api/2fa/backup/regenerate/request` for the emailed code.
   - `POST /api/auth/verify-email/resend`, `POST /api/auth/lock`, `GET /api/auth/me`.
   - `POST /api/security/password`, `GET /api/security/devices`, `POST /api/security/devices/:id/sign-out` and `POST /api/security/devices/sign-out-others`.
+  - `POST /api/auth/password/forgot`, `POST /api/auth/password/reset/verify` and `POST /api/auth/password/reset`.
   - `GET /api/accounts/transactions` and `POST /api/transfers` for internal and external transfers. These are real database updates; the counterparty bank is mocked.
 - **Masking:** email and phone are masked by the server, so the client never receives them in full.
 - **Approximate location in emails:** comes from Cloudflare or Vercel geo headers when `TRUST_GEO_HEADERS=true`. Otherwise it says *Local network* or *Unknown location*.

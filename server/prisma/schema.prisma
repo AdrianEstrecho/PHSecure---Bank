@@ -68,6 +68,7 @@ enum CodePurpose {
   VERIFY_EMAIL
   VERIFY_PHONE
   REGENERATE_BACKUP
+  RESET_PASSWORD
 }
 
 model VerificationCode {

@@ -7,9 +7,20 @@ import { Alert, Button, Spinner } from "./ui.jsx";
 /**
  * "We sent a code to d•••@gmail.com" + six boxes + resend timer.
  * `send()` requests a code (on mount when autoSend, and for resends); `verify(code)` checks it;
- * `onVerified(result)` receives whatever verify resolved with.
+ * `onVerified(result)` receives whatever verify resolved with. `sentText(to)` replaces the "We sent a code to …" sentence.
  */
-export default function EmailCodeStep({ destination, channel = "email", intro, send, verify, onVerified, autoSend = true, initialResendIn = 60, submitLabel = "Verify code" }) {
+export default function EmailCodeStep({
+  destination,
+  channel = "email",
+  intro,
+  sentText,
+  send,
+  verify,
+  onVerified,
+  autoSend = true,
+  initialResendIn = 60,
+  submitLabel = "Verify code",
+}) {
   const [sending, setSending] = useState(autoSend);
   const [sentTo, setSentTo] = useState(destination);
   const [code, setCode] = useState("");
@@ -58,6 +69,8 @@ export default function EmailCodeStep({ destination, channel = "email", intro, s
     }
   }
 
+  const to = <strong className="font-semibold whitespace-nowrap text-ink">{sentTo}</strong>;
+
   if (sending && !sentTo) {
     return (
       <div className="flex items-center gap-3 py-6 text-[15px] text-muted">
@@ -76,8 +89,7 @@ export default function EmailCodeStep({ destination, channel = "email", intro, s
     >
       <p className="text-[15px] leading-relaxed text-muted">
         {intro && <>{intro} </>}
-        {sending ? "Sending a code to " : `We ${channel === "sms" ? "texted" : "sent"} a 6-digit code to `}
-        <strong className="font-semibold whitespace-nowrap text-ink">{sentTo}</strong>.
+        {sending ? <>Sending a code to {to}.</> : sentText ? sentText(to) : <>We {channel === "sms" ? "texted" : "sent"} a 6-digit code to {to}.</>}
       </p>
 
       <div key={shake} className={shake ? "animate-shake" : undefined}>
