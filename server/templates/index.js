@@ -129,6 +129,20 @@ export const templates = {
       extraRows: [["Method", d.methodName]],
     }),
 
+  "password-changed": (d) => {
+    const signedOut = d.signedOut
+      ? `We also signed out ${d.signedOut === 1 ? "1 other device" : `${d.signedOut} other devices`}, which will need the new password to sign back in.`
+      : "Use your new password the next time you sign in.";
+    return alertEmail({
+      ...d,
+      subject: "Your PHSecure password was changed",
+      heading: "Your password was changed",
+      preheader: "The password for your PHSecure account was just changed",
+      paragraphs: ["The password for your PHSecure account was just changed.", esc(signedOut)],
+      textParagraphs: ["The password for your PHSecure account was just changed.", signedOut],
+    });
+  },
+
   "new-device-alert": (d) =>
     alertEmail({
       ...d,

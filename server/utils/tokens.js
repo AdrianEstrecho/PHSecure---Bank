@@ -4,8 +4,9 @@ import { unauthorized } from "./errors.js";
 
 const ISSUER = "phsecure";
 
-export function signAccessToken(userId) {
-  return jwt.sign({ sub: userId }, config.JWT_ACCESS_SECRET, { expiresIn: "15m", audience: "access", issuer: ISSUER });
+// The session ID lets requireAuth reject the token as soon as its device is signed out.
+export function signAccessToken(userId, sessionId) {
+  return jwt.sign({ sub: userId, sid: sessionId }, config.JWT_ACCESS_SECRET, { expiresIn: "15m", audience: "access", issuer: ISSUER });
 }
 
 export function verifyAccessToken(token) {

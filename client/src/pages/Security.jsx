@@ -1,12 +1,14 @@
-import { ChevronRight, History, KeyRound } from "lucide-react";
+import { ChevronRight, History, KeyRound, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { errorMessage } from "../api/client.js";
-import { twofa } from "../api/endpoints.js";
+import { security, twofa } from "../api/endpoints.js";
+import ChangePasswordModal from "../components/ChangePasswordModal.jsx";
 import DisableMethodModal from "../components/DisableMethodModal.jsx";
 import EnableMethodModal from "../components/EnableMethodModal.jsx";
 import MethodCard from "../components/MethodCard.jsx";
 import RegenerateVaultModal from "../components/RegenerateVaultModal.jsx";
+import SignedInDevices from "../components/SignedInDevices.jsx";
 import StrengthMeter from "../components/StrengthMeter.jsx";
 import { Alert, Button, Card, IconCircle, PageHeader, Select, Spinner, cx } from "../components/ui.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -15,9 +17,10 @@ import { METHOD_ORDER, METHODS, securityStrength } from "../lib/methods.js";
 import { useLoad } from "../lib/useLoad.js";
 
 export default function Security() {
-  const { updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const { data: status, error, setData } = useLoad(twofa.status);
-  const [modal, setModal] = useState(null); // { kind: "enable" | "disable" | "regenerate", method }
+  const devices = useLoad(security.devices);
+  const [modal, setModal] = useState(null); // { kind: "enable" | "disable" | "regenerate" | "password", method }
   const [defaultError, setDefaultError] = useState(null);
   const [savingDefault, setSavingDefault] = useState(false);
 
@@ -57,7 +60,7 @@ export default function Security() {
       <PageHeader
         eyebrow="Profile · Security"
         title="Security"
-        description="Choose how you prove it's you when you sign in. Turning a key on or off always needs a code we email you first."
+        description="Choose how you prove it's you when you sign in, and see where you're signed in. Turning a key on or off always needs a code we email you first."
       />
 
       {/* Summary */}
@@ -170,9 +173,30 @@ export default function Security() {
         </Link>
       </Card>
 
+      {/* Password + devices */}
+      <h2 className="mt-10 mb-4 text-[20px] font-semibold">Password and devices</h2>
+      <Card as="section" aria-labelledby="password-heading" className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
+        <IconCircle icon={LockKeyhole} tone="dark" />
+        <div className="flex-1">
+          <h3 id="password-heading" className="text-[17px] font-semibold">
+            Password
+          </h3>
+          <p className="mt-1 text-[14px] text-muted">
+            {user.hasPassword ? "Changing it signs you out on every other device." : "You sign in with Google, so this account has no password."}
+          </p>
+        </div>
+        {user.hasPassword && (
+          <Button variant="outline" size="sm" onClick={() => setModal({ kind: "password" })} className="self-start sm:self-center">
+            Change password
+          </Button>
+        )}
+      </Card>
+      <SignedInDevices load={devices} />
+
       {modal?.kind === "enable" && <EnableMethodModal method={modal.method} status={status} onClose={close} onStatus={applyStatus} />}
       {modal?.kind === "disable" && <DisableMethodModal method={modal.method} status={status} onClose={close} onStatus={applyStatus} />}
       {modal?.kind === "regenerate" && <RegenerateVaultModal status={status} onClose={close} onStatus={applyStatus} />}
+      {modal?.kind === "password" && <ChangePasswordModal onClose={close} onChanged={devices.reload} />}
     </div>
   );
 }

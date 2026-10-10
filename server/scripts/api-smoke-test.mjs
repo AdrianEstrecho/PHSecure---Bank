@@ -2,6 +2,7 @@
 // It reads codes from the dev outbox, creates throwaway users, and nudges timestamps in the database
 // to test expiry and cooldowns — point it at a development database only.
 import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken";
 import otplib from "otplib";
 
 const { authenticator } = otplib;
@@ -206,6 +207,41 @@ r = await d.post("/auth/2fa/verify", { challengeToken, method: "TOTP", code: nex
 check(r.status === 200, "TOTP sign-in (±1 window, next step)", r.data);
 const alert = (await outbox()).find((m) => m.to === email && m.subject === "New sign-in to your account");
 check(Boolean(alert), "new-device alert emailed");
+d.token = r.data.accessToken;
+
+// ── Signed-in devices ─────────────────────────────────────────
+r = await a.get("/security/devices");
+const thisDevice = r.data?.devices?.[0];
+const otherDevice = r.data?.devices?.[1];
+check(r.status === 200 && r.data.devices.length === 2 && thisDevice.current && thisDevice.trustedUntil && !otherDevice.current && !otherDevice.trustedUntil, "devices: this one first (trusted), then the new one", r.data);
+r = await a.post(`/security/devices/${thisDevice.id}/sign-out`);
+check(r.status === 400 && r.data.error.code === "CURRENT_DEVICE", "this device can't sign itself out remotely", r.data);
+r = await a.post(`/security/devices/${otherDevice.id}/sign-out`);
+check(r.status === 200 && r.data.devices.length === 1 && r.data.devices[0].current, "other device signed out", r.data);
+r = await d.get("/auth/me");
+check(r.status === 401 && r.data.error.code === "AUTH_REVOKED", "its access token stops working straight away", r.data);
+r = await d.post("/auth/refresh");
+check(r.status === 401, "and it can't refresh");
+r = await a.post(`/security/devices/${otherDevice.id}/sign-out`);
+check(r.status === 404 && r.data.error.code === "DEVICE_NOT_FOUND", "signing it out twice → 404", r.data);
+
+r = await d.post("/auth/login", { email, password });
+r = await d.post("/auth/2fa/verify", { challengeToken: r.data.challengeToken, method: "VAULT", code: vaultCodes[1], trustDevice: true });
+d.token = r.data.accessToken;
+check(r.status === 200, "other device signs back in and trusts itself", r.data);
+r = await a.post("/security/devices/sign-out-others");
+check(r.status === 200 && r.data.signedOut === 1 && r.data.devices.length === 1 && r.data.devices[0].trustedUntil, "sign out everywhere else (this device stays trusted)", r.data);
+r = await d.get("/auth/me");
+check(r.status === 401 && r.data.error.code === "AUTH_REVOKED", "other device signed out everywhere", r.data);
+r = await d.post("/auth/login", { email, password });
+check(r.status === 200 && r.data.requires2FA, "other device no longer trusted", r.data);
+r = await a.get("/auth/me");
+check(r.status === 200, "this device still signed in", r.data);
+
+const userId = (await prisma.user.findUnique({ where: { email } })).id;
+const legacyToken = jwt.sign({ sub: userId }, process.env.JWT_ACCESS_SECRET, { expiresIn: "15m", audience: "access", issuer: "phsecure" });
+r = await new Client().get("/auth/me", { authorization: `Bearer ${legacyToken}` });
+check(r.status === 401 && r.data.error.code === "TOKEN_EXPIRED", "access token without a session ID → refresh", r.data);
 
 // ── Expired + locked codes ────────────────────────────────────
 await a.post("/2fa/disable/request", { method: "SMS", password });
@@ -277,6 +313,33 @@ r = await l.post("/auth/login", { email, password });
 check(r.status === 423, "correct password refused while locked");
 check((await outbox()).some((m) => m.to === email && m.subject.includes("locked")), "lock alert emailed");
 await prisma.user.update({ where: { email }, data: { lockedUntil: null } });
+
+// ── Change password ───────────────────────────────────────────
+const p = new Client();
+r = await p.post("/auth/login", { email, password });
+p.token = r.data.accessToken;
+check(r.status === 200 && p.token, "second device signed in (2FA is off by now)", r.data);
+const newPassword = "Brand-New-Pass-7";
+r = await a.post("/security/password", { currentPassword: "Not-my-password-1", newPassword });
+check(r.status === 400 && r.data.error.code === "PASSWORD_INVALID" && r.data.error.details[0].path === "currentPassword", "change password needs the current one", r.data);
+r = await a.post("/security/password", { currentPassword: password, newPassword: "short" });
+check(r.status === 400 && r.data.error.code === "VALIDATION" && r.data.error.details[0].path === "newPassword", "new password must be strong", r.data);
+r = await a.post("/security/password", { currentPassword: password, newPassword: password });
+check(r.status === 400 && r.data.error.code === "PASSWORD_UNCHANGED", "new password must differ", r.data);
+r = await a.post("/security/password", { currentPassword: password, newPassword });
+check(r.status === 200 && r.data.signedOut === 1, "password changed, other device signed out", r.data);
+r = await p.get("/auth/me");
+check(r.status === 401 && r.data.error.code === "AUTH_REVOKED", "other device's session ended", r.data);
+r = await a.get("/auth/me");
+check(r.status === 200, "this device stays signed in", r.data);
+check((await outbox()).some((m) => m.to === email && m.subject === "Your PHSecure password was changed"), "password-changed alert emailed");
+r = await p.post("/auth/login", { email, password });
+check(r.status === 401, "old password no longer works");
+r = await p.post("/auth/login", { email, password: newPassword });
+check(r.status === 200 && r.data.accessToken, "new password works", r.data);
+r = await a.get("/security/logs");
+const newEvents = new Set(r.data.logs.map((l) => l.event));
+for (const e of ["DEVICE_SIGNED_OUT", "OTHER_DEVICES_SIGNED_OUT", "PASSWORD_CHANGED", "PASSWORD_CHECK_FAILED"]) check(newEvents.has(e), `log has ${e}`);
 
 // ── "Lock my account" link ────────────────────────────────────
 const lockMail = (await outbox()).find((m) => m.to === email && m.html?.includes("/lock?token="));

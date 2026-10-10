@@ -6,28 +6,9 @@ import AuthShell from "../components/AuthShell.jsx";
 import EmailCodeStep from "../components/EmailCodeStep.jsx";
 import GoogleButton from "../components/GoogleButton.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
-import { Alert, Button, Eyebrow, Field, Input, cx } from "../components/ui.jsx";
+import PasswordMeter from "../components/PasswordMeter.jsx";
+import { Alert, Button, Eyebrow, Field, Input } from "../components/ui.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { passwordStrength } from "../lib/password.js";
-
-const METER_COLORS = ["bg-danger", "bg-danger", "bg-lime", "bg-success", "bg-success"];
-
-function PasswordMeter({ password }) {
-  const { score, label, hint } = passwordStrength(password);
-  return (
-    <div className="space-y-1.5" aria-live="polite">
-      <div className="flex gap-1" aria-hidden>
-        {[1, 2, 3, 4].map((n) => (
-          <span key={n} className={cx("h-1 flex-1 rounded-full transition-colors", password && score >= n ? METER_COLORS[score] : "bg-mist")} />
-        ))}
-      </div>
-      <p className="flex justify-between text-[12.5px] text-muted">
-        <span>{hint}</span>
-        {label && <span className="font-medium text-ink">{label}</span>}
-      </p>
-    </div>
-  );
-}
 
 export default function Register() {
   const navigate = useNavigate();

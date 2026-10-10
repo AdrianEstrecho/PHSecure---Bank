@@ -43,7 +43,7 @@ server/
     code.service.js                 6-digit codes: bcrypt-hashed, expiry, 5 attempts, 60 s resend, hourly cap
     totp.service.js                 AES-256-GCM secret at rest, ±1 step, replay blocked
     passkey.service.js              WebAuthn registration/sign-in, single-use challenges
-    session.service.js              15-min access JWT + rotating 7-day refresh cookie, reuse detection
+    session.service.js              15-min access JWT + rotating 7-day refresh cookie, reuse detection, signed-in devices
     device.service.js               signed device cookie → new-device alerts, "trust for 30 days"
     lockout.service.js              5 failures → 15-min lock + email
     email/sms/notify/outbox         Brevo delivery, dev outbox fallback
@@ -53,7 +53,8 @@ client/src/
   pages/                            Landing, Register, Login, TwoFactorChallenge, Dashboard, Accounts,
                                     Transfers, Profile, Security, SecurityActivity, LockAccount
   components/                       OtpInput, MethodCard, EnableMethodModal, DisableMethodModal,
-                                    TotpSetup, SmsSetup, PasskeySetup, VaultCodesModal, Seal, Passbook, …
+                                    TotpSetup, SmsSetup, PasskeySetup, VaultCodesModal, ChangePasswordModal,
+                                    SignedInDevices, Seal, Passbook, …
   api/ context/ lib/                axios client (auto-refresh, CSRF), AuthContext, formatting, method metadata
 ```
 
@@ -64,6 +65,8 @@ client/src/
 - **Sign-in:** password → the default method's screen, with *Try another method* (other methods and *Use a Vault Code*) and *Trust this device for 30 days*.
 - **Continue with Google:** Google replaces the password step only; 2FA still applies. A new Google email opens an account (no password), an existing one is linked by its verified email. The callback hands the SPA a 2-minute token in the URL fragment, bound to the browser by a cookie nonce and redeemed once at `POST /api/auth/google/finish`. Accounts without a password confirm turning a method off with the emailed code alone.
 - **"Lock my account":** every security email links to `/lock`, which signs out every device and blocks sign-in for 24 hours.
+- **Changing your password** (Profile → Security → Password): current password, then a new one under the same rules as sign-up. Every other device is signed out and no longer trusted, and a `password-changed` alert is emailed. Accounts opened with Google have no password, so the card says so instead.
+- **Signed-in devices** (Profile → Security): every browser with an active session, with its IP and last activity. Sign out one device, or *Sign out everywhere else*. Either way those devices stop being trusted, so signing back in on them needs 2FA again. Access tokens carry their session ID and `requireAuth` checks the session on every request, so a signed-out device is turned away on its next request instead of when its 15-minute token runs out.
 
 ## Additions and interpretations
 
@@ -76,6 +79,7 @@ These go beyond or interpret the spec:
   - `POST /api/auth/2fa/passkey/options` for passkey sign-in.
   - `POST /api/2fa/backup/regenerate/request` for the emailed code.
   - `POST /api/auth/verify-email/resend`, `POST /api/auth/lock`, `GET /api/auth/me`.
+  - `POST /api/security/password`, `GET /api/security/devices`, `POST /api/security/devices/:id/sign-out` and `POST /api/security/devices/sign-out-others`.
   - `GET /api/accounts/transactions` and `POST /api/transfers` for internal and external transfers. These are real database updates; the counterparty bank is mocked.
 - **Masking:** email and phone are masked by the server, so the client never receives them in full.
 - **Approximate location in emails:** comes from Cloudflare or Vercel geo headers when `TRUST_GEO_HEADERS=true`. Otherwise it says *Local network* or *Unknown location*.

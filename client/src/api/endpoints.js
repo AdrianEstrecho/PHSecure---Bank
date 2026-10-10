@@ -37,6 +37,13 @@ export const banking = {
   securityLogs: () => data(api.get("/security/logs")),
 };
 
+export const security = {
+  changePassword: (currentPassword, newPassword) => data(api.post("/security/password", { currentPassword, newPassword })),
+  devices: () => data(api.get("/security/devices")),
+  signOutDevice: (id) => data(api.post(`/security/devices/${encodeURIComponent(id)}/sign-out`)),
+  signOutOtherDevices: () => data(api.post("/security/devices/sign-out-others")),
+};
+
 export const dev = {
   status: () => data(api.get("/dev/status")),
 };
