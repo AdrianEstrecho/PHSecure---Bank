@@ -56,8 +56,9 @@ export function Field({ label, htmlFor, hint, error, children, optional }) {
   );
 }
 
+// 16px on phones: iOS Safari zooms the page into any field set smaller.
 export const inputClass = cx(
-  "h-12 w-full rounded-2xl border border-line bg-surface px-4 text-[15px] text-ink transition-colors",
+  "h-12 w-full rounded-2xl border border-line bg-surface px-4 text-[16px] text-ink transition-colors sm:text-[15px]",
   "placeholder:text-muted/60 focus:border-forest focus:ring-4 focus:ring-lime/40 focus:outline-none",
   "aria-invalid:border-danger aria-invalid:ring-danger/10",
 );
@@ -109,7 +110,7 @@ export const Eyebrow = ({ className, children, tone = "light" }) => (
 
 export function PageHeader({ eyebrow, title, description, actions }) {
   return (
-    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <header className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
       <div>
         {eyebrow && <Eyebrow className="mb-2">{eyebrow}</Eyebrow>}
         <h1 className="text-[32px] leading-[1.1] font-semibold sm:text-[40px]">{title}</h1>
@@ -138,10 +139,10 @@ export const Sparkle = ({ className }) => (
   </svg>
 );
 
-/** Inline pill set into a headline, e.g. "Made For (shield) Digital Users". */
-export const HeadlinePill = ({ className }) => (
+/** Inline pill set into a headline, e.g. "Made For (shield) Digital Users". `tone="dark"` for forest surfaces. */
+export const HeadlinePill = ({ className, tone = "light" }) => (
   <span aria-hidden className={cx("mx-1 inline-flex h-[0.78em] w-[1.6em] translate-y-[0.06em] items-center justify-center rounded-full border-[3px] border-lime align-baseline", className)}>
-    <ShieldCheck strokeWidth={2.25} className="size-[0.46em] shrink-0 text-ink" />
+    <ShieldCheck strokeWidth={2.25} className={cx("size-[0.46em] shrink-0", tone === "dark" ? "text-lime" : "text-ink")} />
   </span>
 );
 

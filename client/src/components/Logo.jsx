@@ -7,7 +7,7 @@ export default function Logo({ tone = "light", to = "/", className }) {
     <Link
       to={to}
       aria-label="PHSecure Bank — home"
-      className={cx("font-display text-[26px] leading-none font-bold tracking-[-0.04em]", tone === "dark" ? "text-white" : "text-forest", className)}
+      className={cx("font-display text-[26px] leading-none font-bold tracking-[-0.04em] whitespace-nowrap", tone === "dark" ? "text-white" : "text-forest", className)}
     >
       <span aria-hidden>
         PHSecure

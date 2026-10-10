@@ -13,23 +13,26 @@ export default function TransactionList({ transactions, showAccount = false, sho
         const credit = value > 0;
         const Icon = credit ? ArrowDownLeft : ArrowUpRight;
         return (
-          <li key={t.id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+          <li key={t.id} className="flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6">
             <span aria-hidden className={cx("grid size-10 shrink-0 place-items-center rounded-full", credit ? "bg-lime-soft text-forest" : "bg-mist text-ink")}>
               <Icon className="size-4" strokeWidth={2} />
             </span>
+            {/* Two lines, each paired with its own figure, so a wide balance doesn't squeeze the description on phones. */}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[14.5px] font-medium text-ink">{t.description}</p>
-              <p className="text-[12.5px] text-muted">
-                {formatDate(t.createdAt)} · {t.category}
-                {showAccount && t.accountType && <> · {t.accountType}</>}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className={cx("text-[14.5px] font-semibold tabular", credit ? "text-success" : "text-ink")}>
-                {credit ? "+" : "−"}
-                {formatMoney(Math.abs(value))}
-              </p>
-              {showBalance && <p className="text-[12px] text-muted tabular">Bal. {formatMoney(t.balanceAfter)}</p>}
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="min-w-0 truncate text-[14.5px] font-medium text-ink">{t.description}</p>
+                <p className={cx("shrink-0 text-[14.5px] font-semibold tabular", credit ? "text-success" : "text-ink")}>
+                  {credit ? "+" : "−"}
+                  {formatMoney(Math.abs(value))}
+                </p>
+              </div>
+              <div className="mt-0.5 flex items-baseline justify-between gap-3 text-[12.5px] text-muted">
+                <p className="min-w-0">
+                  {formatDate(t.createdAt)} · {t.category}
+                  {showAccount && t.accountType && <> · {t.accountType}</>}
+                </p>
+                {showBalance && <p className="shrink-0 text-[12px] tabular">Bal. {formatMoney(t.balanceAfter)}</p>}
+              </div>
             </div>
           </li>
         );

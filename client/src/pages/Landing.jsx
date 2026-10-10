@@ -234,20 +234,20 @@ function Hero({ signedIn }) {
         aria-hidden
         className="absolute inset-0 bg-[radial-gradient(circle,rgb(15_26_20/0.09)_1px,transparent_1px)] [mask-image:linear-gradient(to_bottom,black,transparent_85%)] bg-[length:22px_22px]"
       />
-      <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-16 sm:px-8 lg:grid-cols-[1.1fr_1fr] lg:pt-24">
+      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pt-12 pb-14 sm:gap-14 sm:px-8 sm:pt-16 sm:pb-16 lg:grid-cols-[1.1fr_1fr] lg:pt-24">
         <div className="animate-rise">
           <Eyebrow>Banking with a sign-in only you can finish</Eyebrow>
-          <h1 className="mt-5 text-[44px] leading-[1.04] font-semibold sm:text-[60px] lg:text-[64px]">
+          <h1 className="mt-5 text-[clamp(2.375rem,11.5vw,2.75rem)] leading-[1.04] font-semibold sm:text-[60px] lg:text-[64px]">
             Digital Banking Made For <HeadlinePill /> Digital Users
           </h1>
           <p className="mt-6 max-w-md text-[16px] leading-relaxed text-muted">
             PHSecure is an all-in-one mobile banking app packed with all the tools, tips and tricks you need to take control of your finances.
           </p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
-            <ButtonLink to={signedIn ? "/dashboard" : "/register"} variant="lime" size="lg">
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <ButtonLink to={signedIn ? "/dashboard" : "/register"} variant="lime" size="lg" className="w-full sm:w-auto">
               {signedIn ? "Go to dashboard" : "Open an Account"}
             </ButtonLink>
-            <ButtonLink to={signedIn ? "/transfers" : "/register"} variant="outline" size="lg">
+            <ButtonLink to={signedIn ? "/transfers" : "/register"} variant="outline" size="lg" className="w-full sm:w-auto">
               Send Money Now <ArrowRight className="size-4" aria-hidden />
             </ButtonLink>
           </div>
@@ -262,8 +262,9 @@ function Hero({ signedIn }) {
           ["5,000+", "Reviews", true],
           ["4", "Ways to prove it's you"],
         ].map(([value, label, stars], i) => (
-          <div key={label} className={cx("border-line pr-4", i % 2 && "border-l pl-6", i >= 2 && "lg:border-l lg:pl-6", i === 0 && "lg:pl-0")}>
-            <dd className="flex items-center gap-2 font-display text-[36px] leading-none font-semibold tracking-[-0.03em]">
+          <div key={label} className={cx("border-line pr-4", i % 2 && "border-l pl-5 sm:pl-6", i >= 2 && "lg:border-l lg:pl-6", i === 0 && "lg:pl-0")}>
+            {/* The stars wrap under the figure on a phone's half-width column. */}
+            <dd className="flex flex-wrap items-center gap-x-2 gap-y-2 font-display text-[30px] leading-none font-semibold tracking-[-0.03em] sm:text-[36px]">
               {value}
               {stars && (
                 <span className="flex text-forest" aria-label="rated 5 out of 5">
@@ -408,14 +409,14 @@ function Features() {
   const Visual = FEATURE_STEPS[active].visual;
 
   return (
-    <section id="features" className="scroll-mt-24 py-24">
+    <section id="features" className="scroll-mt-24 py-16 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-8">
         <div className="max-w-xl">
           <Eyebrow>Our Features</Eyebrow>
           <h2 className="mt-3 text-[34px] leading-[1.1] font-semibold sm:text-[46px]">4 Quick Steps To Use Our PHSecure Services</h2>
         </div>
 
-        <div className="mt-14 grid gap-10 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
+        <div className="mt-10 grid gap-10 sm:mt-14 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
           {/* Real sequence — numbered. */}
           <ol className="space-y-3">
             {FEATURE_STEPS.map(({ icon: Icon, title, body, visual: StepVisual }, i) => {
@@ -457,10 +458,10 @@ function Features() {
             <li className="pt-3">
               <Link
                 to="/register"
-                className="group flex items-center justify-between rounded-[26px] bg-forest px-6 py-5 text-white transition-colors hover:bg-forest-2"
+                className="group flex items-center justify-between gap-4 rounded-[26px] bg-forest px-5 py-5 text-white transition-colors hover:bg-forest-2 sm:px-6"
               >
                 <span className="font-display text-[17px] font-semibold">Explore our other product features</span>
-                <span className="flex items-center gap-2 rounded-full bg-lime px-4 py-2 text-[13px] font-semibold text-ink">
+                <span className="flex shrink-0 items-center gap-2 rounded-full bg-lime px-4 py-2 text-[13px] font-semibold whitespace-nowrap text-ink">
                   View More <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
                 </span>
               </Link>
@@ -500,7 +501,7 @@ const SEND_STEPS = [
 
 function Transfers({ signedIn }) {
   return (
-    <section id="transfers" className="relative scroll-mt-24 overflow-hidden bg-forest py-24 text-white">
+    <section id="transfers" className="relative scroll-mt-24 overflow-hidden bg-forest py-16 text-white sm:py-24">
       <div aria-hidden className="absolute -top-48 right-0 size-[520px] rounded-full bg-lime/10 blur-[120px]" />
       <div className="relative mx-auto max-w-6xl px-4 sm:px-8">
         <div className="grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
@@ -546,7 +547,7 @@ function Transfers({ signedIn }) {
           </div>
         </div>
 
-        <div className="mt-24">
+        <div className="mt-16 sm:mt-24">
           <h3 className="text-[26px] font-semibold sm:text-[32px]">Save When You Send Worldwide</h3>
           {/* Five real steps in order, joined by a track */}
           <ol className="relative mt-10 grid gap-8 lg:grid-cols-5 lg:gap-6">
@@ -591,7 +592,7 @@ function Cards() {
   );
 
   return (
-    <section id="cards" className="scroll-mt-24 py-24">
+    <section id="cards" className="scroll-mt-24 py-16 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <Eyebrow>Cards</Eyebrow>
@@ -600,7 +601,7 @@ function Cards() {
           </h2>
         </div>
 
-        <div className="mt-16 grid items-center gap-12 lg:grid-cols-[1fr_1.4fr_1fr]">
+        <div className="mt-12 grid items-center gap-12 sm:mt-16 lg:grid-cols-[1fr_1.4fr_1fr]">
           <div className="order-2 grid grid-cols-2 gap-8 lg:order-1 lg:grid-cols-1 lg:gap-14">{side("left").map(Callout)}</div>
           <div className="relative order-1 px-4 lg:order-2">
             <div aria-hidden className="absolute inset-x-10 bottom-0 h-16 rounded-full bg-lime/50 blur-3xl" />
@@ -622,9 +623,9 @@ function Cards() {
 
 function Security() {
   return (
-    <section id="security" className="scroll-mt-24 pb-24">
+    <section id="security" className="scroll-mt-24 pb-16 sm:pb-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-8">
-        <div className="grid gap-14 rounded-[40px] bg-surface p-7 shadow-soft sm:p-12 lg:grid-cols-[0.85fr_1.15fr]">
+        <div className="grid gap-10 rounded-[32px] bg-surface p-5 shadow-soft sm:gap-14 sm:rounded-[40px] sm:p-12 lg:grid-cols-[0.85fr_1.15fr]">
           <div>
             <Eyebrow>Security</Eyebrow>
             <h2 className="mt-3 text-[32px] leading-[1.1] font-semibold sm:text-[42px]">Four keys. One account only you can open.</h2>
@@ -645,10 +646,10 @@ function Security() {
 
           {/* The actual flow, in order */}
           <ol aria-label="Turning on a key" className="relative space-y-4">
-            <span aria-hidden className="absolute top-8 bottom-8 left-[27px] w-px border-l-2 border-dashed border-line" />
-            <li className="relative flex gap-5">
-              <span className="z-10 grid size-14 shrink-0 place-items-center rounded-full bg-lime font-display font-semibold">1</span>
-              <div className="flex-1 rounded-[24px] bg-canvas p-5">
+            <span aria-hidden className="absolute top-8 bottom-8 left-[19px] w-px sm:left-[27px] border-l-2 border-dashed border-line" />
+            <li className="relative flex gap-3 sm:gap-5">
+              <span className="z-10 grid size-10 shrink-0 place-items-center rounded-full sm:size-14 bg-lime font-display font-semibold">1</span>
+              <div className="min-w-0 flex-1 rounded-[24px] bg-canvas p-4 sm:p-5">
                 <p className="font-semibold">Flip the switch</p>
                 <div aria-hidden className="mt-3 flex items-center justify-between rounded-2xl bg-surface px-4 py-3">
                   <span className="text-[13.5px] font-medium">PHSecure Authenticator</span>
@@ -658,9 +659,9 @@ function Security() {
                 </div>
               </div>
             </li>
-            <li className="relative flex gap-5">
-              <span className="z-10 grid size-14 shrink-0 place-items-center rounded-full bg-forest font-display font-semibold text-lime">2</span>
-              <div className="flex-1 rounded-[24px] bg-canvas p-5">
+            <li className="relative flex gap-3 sm:gap-5">
+              <span className="z-10 grid size-10 shrink-0 place-items-center rounded-full sm:size-14 bg-forest font-display font-semibold text-lime">2</span>
+              <div className="min-w-0 flex-1 rounded-[24px] bg-canvas p-4 sm:p-5">
                 <p className="flex items-center gap-2 font-semibold">
                   <MailCheck className="size-4 text-forest" aria-hidden /> Confirm with the code we email you
                 </p>
@@ -673,15 +674,15 @@ function Security() {
                 </div>
               </div>
             </li>
-            <li className="relative flex gap-5">
-              <span className="z-10 grid size-14 shrink-0 place-items-center rounded-full bg-forest font-display font-semibold text-lime">3</span>
-              <div className="flex-1 rounded-[24px] bg-canvas p-5">
+            <li className="relative flex gap-3 sm:gap-5">
+              <span className="z-10 grid size-10 shrink-0 place-items-center rounded-full sm:size-14 bg-forest font-display font-semibold text-lime">3</span>
+              <div className="min-w-0 flex-1 rounded-[24px] bg-canvas p-4 sm:p-5">
                 <p className="flex items-center gap-2 font-semibold">
                   <KeyRound className="size-4 text-forest" aria-hidden /> Save your ten Vault Codes
                 </p>
-                <p aria-hidden className="mt-3 grid grid-cols-2 gap-2 font-mono text-[13px] sm:grid-cols-4">
+                <p aria-hidden className="mt-3 grid grid-cols-2 gap-2 font-mono text-[12.5px] sm:grid-cols-4 sm:text-[13px]">
                   {["SDG2-WDDX", "Z7T4-3G22", "D72H-78GW", "B5U7-HK5Q"].map((c) => (
-                    <span key={c} className="rounded-lg bg-surface px-2 py-1.5 text-center">
+                    <span key={c} className="rounded-lg bg-surface px-2 py-1.5 text-center whitespace-nowrap">
                       {c}
                     </span>
                   ))}
@@ -716,7 +717,7 @@ export default function Landing() {
   return (
     <div className="overflow-x-clip">
       <header className="sticky top-3 z-40 px-3 sm:px-6">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 rounded-full border border-line/70 bg-surface/85 pr-2 pl-6 shadow-soft backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 rounded-full border border-line/70 bg-surface/85 pr-2 pl-5 shadow-soft backdrop-blur-md sm:h-16 sm:gap-6 sm:pl-6">
           <Logo />
           <nav aria-label="Sections" className="hidden items-center gap-7 md:flex">
             {NAV.map(([label, href]) => (
@@ -728,16 +729,25 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             {signedIn ? (
               <ButtonLink to="/dashboard" size="sm">
-                Go to dashboard
+                <span className="sm:hidden">Dashboard</span>
+                <span className="hidden sm:inline">Go to dashboard</span>
               </ButtonLink>
             ) : (
               <>
-                <Link to="/login" className="rounded-full px-3 py-2 text-[13.5px] font-medium text-ink hover:bg-mist">
-                  Sign in
-                </Link>
-                <ButtonLink to="/register" size="sm">
-                  Open an Account
-                </ButtonLink>
+                {/* Phones get one button: there's no room for two beside the logo, and the hero opens with "Open an Account". */}
+                <div className="hidden items-center gap-2 sm:flex">
+                  <Link to="/login" className="rounded-full px-3 py-2 text-[13.5px] font-medium whitespace-nowrap text-ink hover:bg-mist">
+                    Sign in
+                  </Link>
+                  <ButtonLink to="/register" size="sm">
+                    Open an Account
+                  </ButtonLink>
+                </div>
+                <div className="sm:hidden">
+                  <ButtonLink to="/login" size="sm">
+                    Sign in
+                  </ButtonLink>
+                </div>
               </>
             )}
           </div>

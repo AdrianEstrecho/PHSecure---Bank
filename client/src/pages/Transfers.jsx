@@ -63,23 +63,26 @@ export default function Transfers() {
     );
   }
 
+  // Short enough to fit a phone-width select; the From balance is shown beneath it instead.
   const accountOption = (a) => (
     <option key={a.id} value={a.id}>
-      {a.type} {a.maskedNumber} — {formatMoney(a.balance)}
+      {a.type} •••• {a.maskedNumber.slice(-4)}
     </option>
   );
+  const fromAccount = data.accounts.find((a) => a.id === form.fromAccountId);
 
   return (
     <div>
       <PageHeader eyebrow="Banking" title="Transfers" description="Move money between your accounts instantly, or send it to another bank." />
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      {/* grid-cols-1 is minmax(0,1fr): an auto track would grow to fit the selects' longest option and scroll the page sideways. */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <Card className="p-5 sm:p-7">
           <div role="radiogroup" aria-label="Transfer type" className="mb-6 grid grid-cols-2 rounded-xl border border-ink/20 bg-mist/60 p-1">
             {[
-              ["internal", "Between my accounts"],
-              ["external", "To another bank"],
-            ].map(([value, label]) => (
+              ["internal", "Between my accounts", "My accounts"],
+              ["external", "To another bank", "Another bank"],
+            ].map(([value, label, short]) => (
               <button
                 key={value}
                 type="button"
@@ -90,15 +93,17 @@ export default function Transfers() {
                   setErrors({});
                   setResult(null);
                 }}
-                className={cx("rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors", kind === value ? "bg-forest text-white" : "text-muted hover:text-ink")}
+                className={cx("rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition-colors sm:py-2", kind === value ? "bg-forest text-white" : "text-muted hover:text-ink")}
               >
-                {label}
+                {/* The long labels wrap in half a phone's width. */}
+                <span className="sm:hidden">{short}</span>
+                <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </div>
 
           <form onSubmit={submit} className="space-y-5">
-            <Field label="From" htmlFor="from" error={errors.fromAccountId}>
+            <Field label="From" htmlFor="from" error={errors.fromAccountId} hint={fromAccount && `Available balance: ${formatMoney(fromAccount.balance)}`}>
               <Select id="from" value={form.fromAccountId} onChange={set("fromAccountId")}>
                 {data.accounts.map(accountOption)}
               </Select>

@@ -77,6 +77,10 @@
 }
 
 @layer base {
+  /* Mobile browsers flash a grey box on tap; buttons and links carry their own pressed and focus states. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     @apply bg-canvas font-sans text-ink antialiased;
   }

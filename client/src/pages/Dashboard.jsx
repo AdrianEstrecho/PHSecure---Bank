@@ -88,19 +88,20 @@ export default function Dashboard() {
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
-        <section aria-labelledby="balance-label" className="relative overflow-hidden rounded-[32px] bg-forest p-7 text-white sm:p-9">
+        <section aria-labelledby="balance-label" className="relative overflow-hidden rounded-[32px] bg-forest p-6 text-white sm:p-9">
           <div aria-hidden className="absolute -top-24 -left-24 size-72 rounded-full bg-lime/20 blur-[90px]" />
           <BankCard theme="forest" vertical holder={user.fullName} className="absolute -right-6 -bottom-16 hidden w-[180px] rotate-[14deg] ring-1 ring-white/10 sm:block" />
           <div className="relative">
             <p id="balance-label" className="text-[13px] font-medium text-white/65">
               Total balance · {data.currency}
             </p>
-            <p className="mt-3 font-display text-[44px] leading-none font-semibold tracking-[-0.03em] tabular sm:text-[54px]">
+            {/* Scales with the screen so seven figures still fit on a 320px phone. */}
+            <p className="mt-3 font-display text-[clamp(2rem,11vw,2.75rem)] leading-none font-semibold tracking-[-0.03em] tabular sm:text-[54px]">
               {total.whole}
               <span className="text-[0.5em] text-white/50">{total.cents}</span>
             </p>
             <p className="mt-3 text-[14px] text-white/60">Across {data.accounts.length} accounts</p>
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:flex sm:flex-wrap">
               <ButtonLink to="/transfers" variant="lime">
                 <ArrowLeftRight className="size-4" aria-hidden /> Transfer
               </ButtonLink>
@@ -131,9 +132,9 @@ export default function Dashboard() {
       </div>
 
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between px-6 pt-6 pb-2">
+        <div className="flex items-center justify-between gap-4 px-4 pt-5 pb-2 sm:px-6 sm:pt-6">
           <h2 className="text-[20px] font-semibold">Recent transactions</h2>
-          <Link to="/accounts" className="text-[13.5px] font-semibold text-forest underline decoration-lime decoration-2 underline-offset-4">
+          <Link to="/accounts" className="shrink-0 text-[13.5px] font-semibold text-forest underline decoration-lime decoration-2 underline-offset-4">
             See all
           </Link>
         </div>

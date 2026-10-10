@@ -61,16 +61,19 @@ export default function SecurityActivity() {
                 const meta = EVENTS[log.event] ?? { icon: ShieldCheck, label: () => log.event };
                 const Icon = meta.icon;
                 return (
-                  <li key={log.id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+                  <li key={log.id} className="flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6">
                     <span aria-hidden className={cx("grid size-10 shrink-0 place-items-center rounded-full", meta.warn ? "bg-danger/10 text-danger" : "bg-lime-soft text-forest")}>
                       <Icon className="size-4" strokeWidth={1.9} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-[14.5px] font-medium text-ink">{meta.label(log.details)}</p>
-                      <p className="mt-0.5 text-[12.5px] text-muted">
+                      <p className="mt-0.5 text-[12.5px] break-words text-muted">
                         {log.device} · {log.ip}
-                        <span className="sm:hidden"> · {formatDateTime(log.createdAt)}</span>
                       </p>
+                      {/* Phones: the time on a line of its own rather than wrapped onto the device line. */}
+                      <time dateTime={log.createdAt} className="block text-[12.5px] text-muted sm:hidden">
+                        {formatDateTime(log.createdAt)}
+                      </time>
                     </div>
                     <time dateTime={log.createdAt} className="hidden shrink-0 text-right text-[12.5px] text-muted sm:block">
                       {formatDateTime(log.createdAt)}

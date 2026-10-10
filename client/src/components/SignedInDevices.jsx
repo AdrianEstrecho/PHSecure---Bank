@@ -73,16 +73,17 @@ export default function SignedInDevices({ load }) {
           {devices.map((device) => {
             const Icon = isPhone(device.label) ? Smartphone : Monitor;
             return (
-              <li key={device.id} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+              // On phones the Sign out button sits under the details rather than squeezing them.
+              <li key={device.id} className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-2 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:px-6">
                 <span aria-hidden className={cx("grid size-10 shrink-0 place-items-center rounded-full", device.current ? "bg-lime text-ink" : "bg-mist text-muted")}>
                   <Icon className="size-4" strokeWidth={1.9} />
                 </span>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[14.5px] font-medium text-ink">
                     {device.label}
                     {device.current && <Badge tone="lime">This device</Badge>}
                   </p>
-                  <p className="mt-0.5 text-[12.5px] text-muted">
+                  <p className="mt-0.5 text-[12.5px] break-words text-muted">
                     {device.current ? "Active now" : `Active ${timeAgo(device.lastActiveAt)}`} · {device.ip}
                   </p>
                   <p className="text-[12.5px] text-muted">
@@ -91,7 +92,14 @@ export default function SignedInDevices({ load }) {
                   </p>
                 </div>
                 {!device.current && (
-                  <Button variant="ghost" size="sm" onClick={() => signOut(device)} loading={busy === device.id} disabled={busy !== null} className="shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => signOut(device)}
+                    loading={busy === device.id}
+                    disabled={busy !== null}
+                    className="col-start-2 justify-self-start border-line hover:border-ink sm:col-start-3"
+                  >
                     Sign out<span className="sr-only"> {device.label}</span>
                   </Button>
                 )}

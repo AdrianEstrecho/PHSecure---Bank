@@ -32,14 +32,17 @@ export default function Accounts() {
         eyebrow="Banking"
         title="Accounts"
         actions={
-          <div role="tablist" aria-label="Accounts" className="flex gap-1 self-start rounded-full bg-surface p-1 shadow-soft sm:self-auto">
+          <div role="tablist" aria-label="Accounts" className="flex gap-1 rounded-full bg-surface p-1 shadow-soft">
             {data.accounts.map((a) => (
               <button
                 key={a.id}
                 role="tab"
                 aria-selected={a.id === account.id}
                 onClick={() => setParams({ account: a.id })}
-                className={cx("rounded-full px-4 py-2 text-[13.5px] font-medium transition-colors", a.id === account.id ? "bg-forest text-white" : "text-muted hover:text-ink")}
+                className={cx(
+                  "flex-1 rounded-full px-4 py-2.5 text-[13.5px] font-medium whitespace-nowrap transition-colors sm:flex-none sm:py-2",
+                  a.id === account.id ? "bg-forest text-white" : "text-muted hover:text-ink",
+                )}
               >
                 {a.type}
               </button>
@@ -48,7 +51,7 @@ export default function Accounts() {
         }
       />
 
-      <section role="tabpanel" aria-labelledby="account-heading" className="relative mb-5 overflow-hidden rounded-[32px] bg-forest p-7 text-white sm:p-9">
+      <section role="tabpanel" aria-labelledby="account-heading" className="relative mb-5 overflow-hidden rounded-[32px] bg-forest p-6 text-white sm:p-9">
         <div aria-hidden className="absolute -bottom-24 -left-24 size-72 rounded-full bg-lime/15 blur-[90px]" />
         <div className="relative grid items-center gap-8 sm:grid-cols-[1fr_220px]">
           <div>
@@ -56,7 +59,7 @@ export default function Accounts() {
               {account.type}
             </h2>
             <p className="mt-6 text-[13px] text-white/60">Available balance · {account.currency}</p>
-            <p className="mt-2 font-display text-[44px] leading-none font-semibold tracking-[-0.03em] tabular sm:text-[54px]">
+            <p className="mt-2 font-display text-[clamp(2rem,11vw,2.75rem)] leading-none font-semibold tracking-[-0.03em] tabular sm:text-[54px]">
               {balance.whole}
               <span className="text-[0.5em] text-white/50">{balance.cents}</span>
             </p>
@@ -76,7 +79,7 @@ export default function Accounts() {
       </section>
 
       <Card className="overflow-hidden">
-        <h2 className="px-6 pt-6 pb-2 text-[20px] font-semibold">Transactions</h2>
+        <h2 className="px-4 pt-5 pb-2 text-[20px] font-semibold sm:px-6 sm:pt-6">Transactions</h2>
         {history ? (
           <TransactionList transactions={history.transactions} showBalance />
         ) : (

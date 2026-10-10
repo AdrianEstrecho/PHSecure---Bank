@@ -9,10 +9,11 @@ export default function MethodCard({ state, status, onToggle, onAddPasskey }) {
   const isDefault = status.defaultMethod === state.type && state.enabled;
 
   return (
-    <li className="flex gap-4 rounded-[26px] bg-surface p-5 shadow-soft sm:gap-5 sm:p-6">
-      <IconCircle icon={meta.icon} tone={state.enabled ? "lime" : "mist"} />
+    // Phones: icon and switch share the top row and the text runs full width below. From sm: icon | text | switch.
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-4 rounded-[26px] bg-surface p-5 shadow-soft sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start sm:gap-y-0 sm:p-6">
+      <IconCircle icon={meta.icon} tone={state.enabled ? "lime" : "mist"} className="col-start-1 row-start-1" />
 
-      <div className="min-w-0 flex-1">
+      <div className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <h3 className="text-[17px] leading-tight font-semibold">
             {meta.name}
@@ -35,8 +36,8 @@ export default function MethodCard({ state, status, onToggle, onAddPasskey }) {
         {state.type === "PASSKEY" && state.enabled && state.passkeys?.length > 0 && (
           <ul className="mt-4 space-y-2">
             {state.passkeys.map((p) => (
-              <li key={p.id} className="flex items-center justify-between rounded-2xl bg-canvas px-3.5 py-2.5 text-[13px]">
-                <span className="font-medium">{p.deviceName}</span>
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-3 rounded-2xl bg-canvas px-3.5 py-2.5 text-[13px]">
+                <span className="min-w-0 font-medium">{p.deviceName}</span>
                 <span className="text-muted">added {formatDate(p.createdAt)}</span>
               </li>
             ))}
@@ -49,7 +50,7 @@ export default function MethodCard({ state, status, onToggle, onAddPasskey }) {
         )}
       </div>
 
-      <div className="pt-1">
+      <div className="col-start-2 row-start-1 sm:col-start-3 sm:pt-1">
         <Toggle checked={state.enabled} onClick={onToggle} label={`${meta.name}: ${state.enabled ? "on — turn off" : "off — turn on"}`} />
       </div>
     </li>

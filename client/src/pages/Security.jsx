@@ -16,6 +16,10 @@ import { formatDate } from "../lib/format.js";
 import { METHOD_ORDER, METHODS, securityStrength } from "../lib/methods.js";
 import { useLoad } from "../lib/useLoad.js";
 
+// Icon | text | button. On phones the button drops below the text instead of squeezing it.
+const ROW_CARD = "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-4 p-5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-5 sm:p-6";
+const ROW_CARD_ACTION = "col-start-2 justify-self-start sm:col-start-3";
+
 export default function Security() {
   const { user, updateUser } = useAuth();
   const { data: status, error, setData } = useLoad(twofa.status);
@@ -119,9 +123,9 @@ export default function Security() {
       </ul>
 
       {/* Vault Codes */}
-      <Card as="section" aria-labelledby="vault-heading" className="mt-3 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
+      <Card as="section" aria-labelledby="vault-heading" className={cx(ROW_CARD, "mt-3")}>
         <IconCircle icon={KeyRound} tone="dark" />
-        <div className="flex-1">
+        <div className="min-w-0">
           <h3 id="vault-heading" className="text-[17px] font-semibold">
             Vault Codes
           </h3>
@@ -141,7 +145,7 @@ export default function Security() {
             <p className="mt-1 text-[14px] text-muted">Ten single-use recovery codes, created when you turn on your first key.</p>
           )}
         </div>
-        <Button variant="outline" size="sm" disabled={!status.twoFactorOn} onClick={() => setModal({ kind: "regenerate" })} className="self-start sm:self-center">
+        <Button variant="outline" size="sm" disabled={!status.twoFactorOn} onClick={() => setModal({ kind: "regenerate" })} className={ROW_CARD_ACTION}>
           Regenerate
         </Button>
       </Card>
@@ -175,9 +179,9 @@ export default function Security() {
 
       {/* Password + devices */}
       <h2 className="mt-10 mb-4 text-[20px] font-semibold">Password and devices</h2>
-      <Card as="section" aria-labelledby="password-heading" className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
+      <Card as="section" aria-labelledby="password-heading" className={ROW_CARD}>
         <IconCircle icon={LockKeyhole} tone="dark" />
-        <div className="flex-1">
+        <div className="min-w-0">
           <h3 id="password-heading" className="text-[17px] font-semibold">
             Password
           </h3>
@@ -186,7 +190,7 @@ export default function Security() {
           </p>
         </div>
         {user.hasPassword && (
-          <Button variant="outline" size="sm" onClick={() => setModal({ kind: "password" })} className="self-start sm:self-center">
+          <Button variant="outline" size="sm" onClick={() => setModal({ kind: "password" })} className={ROW_CARD_ACTION}>
             Change password
           </Button>
         )}

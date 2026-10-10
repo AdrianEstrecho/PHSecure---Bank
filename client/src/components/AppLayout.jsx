@@ -1,4 +1,4 @@
-import { LogOut, Menu, X } from "lucide-react";
+import { ArrowLeftRight, House, LogOut, ShieldCheck, UserRound, Wallet, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -7,11 +7,11 @@ import Modal from "./Modal.jsx";
 import { Button, cx } from "./ui.jsx";
 
 const NAV = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/accounts", label: "Accounts" },
-  { to: "/transfers", label: "Transfers" },
-  { to: "/profile", label: "Profile", end: true },
-  { to: "/security", label: "Security" },
+  { to: "/dashboard", label: "Dashboard", icon: House },
+  { to: "/accounts", label: "Accounts", icon: Wallet },
+  { to: "/transfers", label: "Transfers", icon: ArrowLeftRight },
+  { to: "/profile", label: "Profile", end: true, icon: UserRound },
+  { to: "/security", label: "Security", icon: ShieldCheck },
 ];
 
 const initials = (name = "") =>
@@ -49,7 +49,7 @@ export default function AppLayout() {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-30 border-b border-line/70 bg-surface/90 backdrop-blur-md">
-        <div className="mx-auto flex h-[72px] max-w-6xl items-center gap-8 px-4 sm:px-8">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-4 sm:px-8 lg:h-[72px]">
           <Logo to="/dashboard" />
           <nav aria-label="Main" className="hidden items-center gap-1 rounded-full bg-canvas p-1 lg:flex">
             {NAV.map(({ to, label, end }) => (
@@ -81,8 +81,15 @@ export default function AppLayout() {
               <LogOut className="size-3.5" aria-hidden /> Sign out
             </button>
           </div>
-          <button type="button" onClick={() => setOpen(true)} className="-mr-2 ml-auto rounded-full p-2 text-ink lg:hidden" aria-label="Open menu" aria-expanded={open}>
-            <Menu className="size-6" />
+          {/* Pages are one tap away in the bottom bar, so on phones this opens the account menu. */}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="ml-auto grid size-10 place-items-center rounded-full bg-lime text-[13px] font-semibold text-ink lg:hidden"
+            aria-label="Open menu"
+            aria-expanded={open}
+          >
+            <span aria-hidden>{initials(user?.fullName)}</span>
           </button>
         </div>
       </header>
@@ -142,11 +149,29 @@ export default function AppLayout() {
         </Modal>
       )}
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-8 lg:py-12">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-8 sm:px-8 sm:pt-8 lg:py-12">
         <Outlet />
       </main>
 
-      <footer className="mx-auto w-full max-w-6xl px-4 pb-8 text-[12px] text-muted sm:px-8">PHSecure Bank · A demonstration app — no real money is held.</footer>
+      {/* Bottom padding clears the tab bar below lg. */}
+      <footer className="mx-auto w-full max-w-6xl px-4 pb-24 text-[12px] text-muted sm:px-8 lg:pb-8">PHSecure Bank · A demonstration app — no real money is held.</footer>
+
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 border-t border-line/70 bg-surface/95 backdrop-blur-md lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-5 px-1">
+          {NAV.map(({ to, label, end, icon: Icon }) => (
+            <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("flex flex-col items-center gap-1 pt-2 pb-2.5 text-[11px] font-medium", isActive ? "text-ink" : "text-muted")}>
+              {({ isActive }) => (
+                <>
+                  <span aria-hidden className={cx("grid h-8 w-14 place-items-center rounded-full transition-colors", isActive && "bg-lime")}>
+                    <Icon className="size-5" strokeWidth={isActive ? 2.1 : 1.8} />
+                  </span>
+                  {label}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }

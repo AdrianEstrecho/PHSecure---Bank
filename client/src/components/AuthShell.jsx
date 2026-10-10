@@ -21,7 +21,7 @@ export default function AuthShell({ children }) {
           <p className="font-display text-[34px] leading-[1.12] font-semibold tracking-[-0.025em] text-white">
             Digital banking
             <br />
-            made for <HeadlinePill />
+            made for <HeadlinePill tone="dark" />
             <br />
             digital users
           </p>
@@ -31,11 +31,22 @@ export default function AuthShell({ children }) {
         </div>
       </aside>
 
-      <main className="flex flex-col bg-surface px-4 py-6 sm:px-8">
-        <div className="lg:hidden">
-          <Logo />
+      <main className="flex flex-col bg-surface">
+        {/* Below lg the side panel shrinks to a brand band, and the form starts at the top so the keyboard doesn't shove it around. */}
+        <div className="relative overflow-hidden rounded-b-[32px] bg-forest px-5 pt-6 pb-7 sm:px-8 lg:hidden">
+          <div aria-hidden className="absolute -top-24 -left-20 size-64 rounded-full bg-lime/20 blur-[90px]" />
+          <div aria-hidden className="absolute -right-3 -bottom-16 h-[150px] w-[150px]">
+            <BankCard theme="mist" vertical className="absolute top-2 left-0 w-[76px] -rotate-[14deg]" />
+            <BankCard theme="forest" vertical className="absolute top-0 left-[54px] w-[84px] rotate-[8deg] ring-1 ring-white/10" />
+          </div>
+          <Logo tone="dark" className="relative" />
+          <p className="relative mt-6 max-w-[13.5rem] font-display text-[22px] leading-[1.18] font-semibold tracking-[-0.025em] text-white sm:max-w-none">
+            Digital banking made for <HeadlinePill tone="dark" /> digital users
+          </p>
         </div>
-        <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center py-10">{children}</div>
+        <div className="flex flex-1 flex-col px-5 pt-8 pb-10 sm:px-8 lg:justify-center lg:py-16">
+          <div className="mx-auto w-full max-w-[420px]">{children}</div>
+        </div>
       </main>
     </div>
   );
