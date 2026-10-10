@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck, Info, LoaderCircle } from "lucide-react";
+import { CircleAlert, CircleCheck, Info, LoaderCircle, ShieldCheck } from "lucide-react";
 import { Link } from "react-router";
 
 const cx = (...classes) => classes.filter(Boolean).join(" ");
@@ -138,10 +138,10 @@ export const Sparkle = ({ className }) => (
   </svg>
 );
 
-/** Inline pill set into a headline, e.g. "Made For (✦) Digital Users". */
+/** Inline pill set into a headline, e.g. "Made For (shield) Digital Users". */
 export const HeadlinePill = ({ className }) => (
   <span aria-hidden className={cx("mx-1 inline-flex h-[0.78em] w-[1.6em] translate-y-[0.06em] items-center justify-center rounded-full border-[3px] border-lime align-baseline", className)}>
-    <Sparkle className="size-[0.36em] text-ink" />
+    <ShieldCheck strokeWidth={2.25} className="size-[0.46em] shrink-0 text-ink" />
   </span>
 );
 
