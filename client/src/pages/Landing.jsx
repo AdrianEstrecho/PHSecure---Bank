@@ -372,7 +372,7 @@ function CardsVisual() {
   return (
     <div className="relative h-[260px] w-full max-w-[380px]">
       <BankCard theme="light" className="absolute top-0 left-0 w-[78%] -rotate-[8deg]" />
-      <BankCard theme="forest" holder="Isabel Navarro" last4="4821" className="absolute right-0 bottom-0 w-[78%] rotate-[5deg]" />
+      <BankCard theme="forest" holder="John Doe" last4="4821" className="absolute right-0 bottom-0 w-[78%] rotate-[5deg]" />
     </div>
   );
 }
@@ -607,7 +607,7 @@ function Cards() {
             <div aria-hidden className="absolute inset-x-10 bottom-0 h-16 rounded-full bg-lime/50 blur-3xl" />
             <BankCard
               theme="forest"
-              holder="Isabel Navarro"
+              holder="John Doe"
               last4="4821"
               className="relative mx-auto max-w-[420px] transition-transform duration-500 [transform:perspective(1100px)_rotateX(16deg)_rotateZ(-7deg)] hover:[transform:perspective(1100px)_rotateX(0deg)_rotateZ(0deg)]"
             />
