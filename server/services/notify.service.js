@@ -41,6 +41,7 @@ export function sendSecurityAlert(templateName, { user, req, withLockLink = true
     firstName: user.fullName.split(" ")[0],
     context: emailContext(req),
     lockUrl: withLockLink ? lockUrlFor(user) : null,
+    unlockUrl: `${config.clientUrl}/unlock`,
     ...data,
   }).catch((err) => console.error(`[email] Failed to send "${templateName}" alert:`, err.message));
 }

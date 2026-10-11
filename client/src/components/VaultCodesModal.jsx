@@ -1,10 +1,11 @@
 import { Check, Copy, Download } from "lucide-react";
 import { useState } from "react";
+import { downloadText } from "../lib/download.js";
 import { formatDateTime } from "../lib/format.js";
 import { Alert, Button } from "./ui.jsx";
 
 function downloadCodes(codes) {
-  const body = [
+  downloadText("phsecure-vault-codes.txt", [
     "PHSecure Bank — Vault Codes",
     `Created ${formatDateTime(new Date())}`,
     "",
@@ -12,11 +13,7 @@ function downloadCodes(codes) {
     "",
     "Each code works once. Use one to sign in if you lose access to your other security methods.",
     "Keep this file somewhere only you can reach.",
-  ].join("\n");
-  const url = URL.createObjectURL(new Blob([body], { type: "text/plain" }));
-  const link = Object.assign(document.createElement("a"), { href: url, download: "phsecure-vault-codes.txt" });
-  link.click();
-  URL.revokeObjectURL(url);
+  ]);
 }
 
 /** Body of the "Save your Vault Codes" step. The codes are never shown again after `onDone`. */

@@ -1,4 +1,4 @@
-import { ChevronLeft, CircleAlert, KeyRound, LockKeyhole, LogIn, LogOut, ShieldCheck, ShieldOff, UserRound } from "lucide-react";
+import { ChevronLeft, CircleAlert, KeyRound, LockKeyhole, LockKeyholeOpen, LogIn, LogOut, ShieldCheck, ShieldOff, UserRound } from "lucide-react";
 import { Link } from "react-router";
 import { banking } from "../api/endpoints.js";
 import { Alert, Card, PageHeader, Spinner, cx } from "../components/ui.jsx";
@@ -25,6 +25,8 @@ const EVENTS = {
   PASSWORD_RESET: { icon: LockKeyhole, warn: true, label: () => "Password reset with an emailed code · every device signed out" },
   ACCOUNT_LOCKED: { icon: CircleAlert, warn: true, label: () => "Account locked after failed attempts" },
   ACCOUNT_LOCKED_BY_USER: { icon: CircleAlert, warn: true, label: () => "Account locked from email link" },
+  ACCOUNT_UNLOCKED: { icon: LockKeyholeOpen, warn: true, label: (d) => `Unlocked early with an unlock code${d ? ` · ${d}` : ""}` },
+  UNLOCK_FAILED: { icon: CircleAlert, warn: true, label: () => "Wrong unlock code entered" },
   "2FA_ENABLED": { icon: ShieldCheck, label: (d) => `${methodName(d)} turned on` },
   "2FA_DISABLED": { icon: ShieldOff, warn: true, label: (d) => `${methodName(d)} turned off` },
   "2FA_TURNED_OFF": { icon: ShieldOff, warn: true, label: () => "Two-factor authentication turned off" },

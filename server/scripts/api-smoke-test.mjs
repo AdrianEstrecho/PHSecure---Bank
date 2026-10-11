@@ -311,8 +311,18 @@ r = await l.post("/auth/login", { email, password: "Bad-password-1" });
 check(r.status === 423 && r.data.error.code === "ACCOUNT_LOCKED", "5th failure locks account", r.data);
 r = await l.post("/auth/login", { email, password });
 check(r.status === 423, "correct password refused while locked");
-check((await outbox()).some((m) => m.to === email && m.subject.includes("locked")), "lock alert emailed");
-await prisma.user.update({ where: { email }, data: { lockedUntil: null } });
+const lockAlert = (await outbox()).find((m) => m.to === email && m.subject === "Your PHSecure account is locked");
+const emailedUnlock = lockAlert?.text.match(/Your unlock code: ([A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4})/)?.[1];
+check(Boolean(emailedUnlock), "lock alert emailed with an unlock code", lockAlert?.text);
+r = await l.post("/auth/unlock", { email, code: "ABCD-EFGH-JKLM" });
+check(r.status === 400 && r.data.error.code === "UNLOCK_CODE_INVALID", "wrong unlock code rejected", r.data);
+r = await l.post("/auth/unlock", { email: "nobody@example.com", code: emailedUnlock });
+check(r.status === 400 && r.data.error.code === "UNLOCK_CODE_INVALID", "unlock code only works for its own account", r.data);
+r = await l.post("/auth/unlock", { email, code: emailedUnlock.toLowerCase().replaceAll("-", "") });
+check(r.status === 200 && r.data.unlocked, "emailed unlock code lifts the lock (case and dashes don't matter)", r.data);
+r = await l.post("/auth/unlock", { email, code: emailedUnlock });
+check(r.status === 400 && r.data.error.code === "UNLOCK_CODE_INVALID", "unlock code works once", r.data);
+check((await outbox()).some((m) => m.to === email && m.subject === "Your PHSecure account was unlocked"), "unlocked alert emailed");
 
 // ── Change password ───────────────────────────────────────────
 const p = new Client();
@@ -345,16 +355,27 @@ for (const e of ["DEVICE_SIGNED_OUT", "OTHER_DEVICES_SIGNED_OUT", "PASSWORD_CHAN
 const lockMail = (await outbox()).find((m) => m.to === email && m.html?.includes("/lock?token="));
 const lockToken = lockMail.html.match(/\/lock\?token=([\w.-]+)/)[1];
 r = await a.post("/auth/lock", { token: lockToken });
-check(r.status === 200 && r.data.locked, "lock link locks account", r.data);
+check(r.status === 200 && r.data.locked && /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(r.data.unlockCode), "lock link locks account and shows an unlock code", r.data);
+const shownUnlock = r.data.unlockCode;
 r = await a.get("/auth/me");
 check(r.status === 401 && r.data.error.code === "AUTH_REVOKED", "existing access token revoked", r.data);
 r = await a.post("/auth/refresh");
 check(r.status === 401, "refresh session revoked");
+const selfLockMail = (await outbox()).find((m) => m.to === email && m.subject === "Your PHSecure account is locked");
+check(selfLockMail && !selfLockMail.text.includes(shownUnlock) && !selfLockMail.html.includes(shownUnlock), "the unlock code is never emailed");
+r = await a.post("/auth/lock", { token: lockToken });
+check(r.status === 200 && r.data.alreadyLocked && !r.data.unlockCode, "locking again doesn't issue a new unlock code", r.data);
+const u = new Client({ "x-forwarded-for": "198.51.100.6" });
+r = await u.post("/auth/login", { email, password: newPassword });
+check(r.status === 423 && r.data.error.code === "ACCOUNT_LOCKED", "sign-in refused while locked", r.data);
+r = await u.post("/auth/unlock", { email, code: shownUnlock });
+check(r.status === 200 && r.data.unlocked, "the unlock code shown at lock time lifts the lock", r.data);
+const unlockLogs = await prisma.securityLog.findMany({ where: { user: { email }, event: { in: ["ACCOUNT_UNLOCKED", "UNLOCK_FAILED"] } }, select: { event: true } });
+check(unlockLogs.filter((x) => x.event === "ACCOUNT_UNLOCKED").length === 2 && unlockLogs.some((x) => x.event === "UNLOCK_FAILED"), "unlocks and wrong unlock codes are logged", unlockLogs);
 
 // ── Forgot password ───────────────────────────────────────────
 // From other client IPs (the server trusts X-Forwarded-For from loopback), so these sign-ins don't hit the
 // per-IP login limit the lockout test used up.
-await prisma.user.update({ where: { email }, data: { lockedUntil: null } });
 const f = new Client({ "x-forwarded-for": "198.51.100.7" });
 r = await f.post("/auth/login", { email, password: newPassword });
 f.token = r.data?.accessToken;

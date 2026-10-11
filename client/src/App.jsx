@@ -15,12 +15,14 @@ import Security from "./pages/Security.jsx";
 import SecurityActivity from "./pages/SecurityActivity.jsx";
 import Transfers from "./pages/Transfers.jsx";
 import TwoFactorChallenge from "./pages/TwoFactorChallenge.jsx";
+import UnlockAccount from "./pages/UnlockAccount.jsx";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/lock" element={<LockAccount />} />
+      <Route path="/unlock" element={<UnlockAccount />} />
 
       <Route element={<PublicOnly />}>
         <Route path="/login" element={<Login />} />

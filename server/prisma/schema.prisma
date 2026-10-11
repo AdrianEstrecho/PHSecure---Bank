@@ -26,6 +26,10 @@ model User {
   defaultMethod    TwoFactorType?
   failedAttempts   Int               @default(0)
   lockedUntil      DateTime?
+  // True when the owner locked the account from a security email, rather than after failed attempts.
+  lockedByUser     Boolean           @default(false)
+  // bcrypt hash of the one-time code that lifts the current lock early; cleared once used.
+  unlockCodeHash   String?
   // Access tokens issued before this instant are rejected (set when the user locks their account).
   tokensValidAfter DateTime?
   createdAt        DateTime          @default(now())

@@ -13,6 +13,7 @@ export const auth = {
   verify2fa: (body) => data(api.post("/auth/2fa/verify", body)),
   logout: () => api.post("/auth/logout"),
   lock: (token) => data(api.post("/auth/lock", { token })),
+  unlock: (email, code) => data(api.post("/auth/unlock", { email, code })),
   forgotPassword: (email) => data(api.post("/auth/password/forgot", { email })),
   verifyResetCode: (email, code) => data(api.post("/auth/password/reset/verify", { email, code })),
   resetPassword: (resetToken, newPassword) => data(api.post("/auth/password/reset", { resetToken, newPassword })),

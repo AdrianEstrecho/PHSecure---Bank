@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { errorMessage } from "../api/client.js";
+import { errorCode, errorMessage } from "../api/client.js";
 import { auth } from "../api/endpoints.js";
 import AuthShell from "../components/AuthShell.jsx";
 import EmailCodeStep from "../components/EmailCodeStep.jsx";
@@ -18,6 +18,7 @@ export default function Login() {
   const [email, setEmail] = useState(location.state?.email ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const [locked, setLocked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [verification, setVerification] = useState(null);
 
@@ -35,6 +36,7 @@ export default function Login() {
       }
     } catch (err) {
       setError(errorMessage(err));
+      setLocked(errorCode(err) === "ACCOUNT_LOCKED");
     } finally {
       setBusy(false);
     }
@@ -85,7 +87,19 @@ export default function Login() {
             Forgot password?
           </Link>
         </p>
-        {error && <Alert>{error}</Alert>}
+        {error && (
+          <Alert>
+            {error}
+            {locked && (
+              <>
+                {" "}
+                <Link to="/unlock" state={{ email }} className="font-semibold underline underline-offset-2">
+                  Have an unlock code?
+                </Link>
+              </>
+            )}
+          </Alert>
+        )}
         <Button type="submit" className="w-full" size="lg" loading={busy}>
           Sign in
         </Button>

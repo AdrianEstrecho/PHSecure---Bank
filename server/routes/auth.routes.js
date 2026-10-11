@@ -20,6 +20,7 @@ authRoutes.post("/2fa/verify", credentialLimiter(), validate(schemas.verify2fa),
 authRoutes.post("/refresh", auth.refresh);
 authRoutes.post("/logout", auth.logout);
 authRoutes.post("/lock", validate(schemas.lock), auth.lockAccount);
+authRoutes.post("/unlock", credentialLimiter(), validate(schemas.unlock), auth.unlockAccount);
 authRoutes.post("/password/forgot", credentialLimiter(), validate(schemas.forgotPassword), auth.forgotPassword);
 authRoutes.post("/password/reset/verify", credentialLimiter(), validate(schemas.verifyResetCode), auth.verifyResetCode);
 authRoutes.post("/password/reset", credentialLimiter(), validate(schemas.resetPassword), auth.resetPassword);

@@ -8,7 +8,7 @@ import { openStarterAccounts } from "../services/account.service.js";
 import { RESEND_COOLDOWN_SECONDS, WRONG_CODE_ERRORS, issueCode, verifyCode } from "../services/code.service.js";
 import { findDevice, isTrusted, recognizeDevice } from "../services/device.service.js";
 import { googleAuthRequest, googleIdentity } from "../services/google.service.js";
-import { assertNotLocked, clearFailedAttempts, recordFailedAttempt } from "../services/lockout.service.js";
+import { assertNotLocked, clearFailedAttempts, newUnlockCode, notLockedByUser, recordFailedAttempt } from "../services/lockout.service.js";
 import { formatTime, sendCodeEmail, sendCodeSms, sendSecurityAlert } from "../services/notify.service.js";
 import { passkeyAuthenticationOptions, verifyPasskeyAuthentication } from "../services/passkey.service.js";
 import { clearSessionCookies, createSession, publicUser, revokeAllSessions, revokeCurrentSession, rotateSession } from "../services/session.service.js";
@@ -16,7 +16,7 @@ import { verifyTotp } from "../services/totp.service.js";
 import { enabledMethodTypes } from "../services/twofa.service.js";
 import { consumeVaultCode } from "../services/vault.service.js";
 import { GOOGLE_HANDOFF_COOKIE, GOOGLE_STATE_COOKIE, REFRESH_COOKIE, googleCookieOptions } from "../utils/cookies.js";
-import { DUMMY_PASSWORD_HASH, compareHash, hashPassword, randomToken, safeEqual, sha256 } from "../utils/crypto.js";
+import { DUMMY_CODE_HASH, DUMMY_PASSWORD_HASH, compareHash, hashPassword, normalizeUnlockCode, randomToken, safeEqual, sha256 } from "../utils/crypto.js";
 import { HttpError, badRequest, conflict, unauthorized } from "../utils/errors.js";
 import { maskEmail, maskPhone } from "../utils/mask.js";
 import { METHOD_NAMES } from "../utils/methods.js";
@@ -53,6 +53,10 @@ export const schemas = {
       if (v.method === "PASSKEY" && !v.credential) ctx.addIssue({ code: "custom", path: ["credential"], message: "Passkey response missing." });
     }),
   lock: z.object({ token: tokenField }),
+  unlock: z.object({
+    email: emailField,
+    code: z.string().refine((v) => normalizeUnlockCode(v), "Enter the 12-character unlock code, e.g. ABCD-EFGH-JKLM."),
+  }),
   googleFinish: z.object({ token: tokenField }),
   forgotPassword: z.object({ email: emailField }),
   verifyResetCode: z.object({ email: emailField, code: codeField }),
@@ -228,7 +232,9 @@ export async function googleCallback(req, res) {
     res.redirect(303, googleResult({ token: signPurposeToken("google-handoff", { sub: user.id, nonce: sha256(nonce), isNew }) }));
   } catch (err) {
     if (!(err instanceof HttpError)) console.error("Google sign-in failed:", err);
-    res.redirect(303, googleResult({ error: err instanceof HttpError ? err.message : "Google sign-in failed. Please try again." }));
+    const error = err instanceof HttpError ? err.message : "Google sign-in failed. Please try again.";
+    // Lets the sign-in page offer the unlock code.
+    res.redirect(303, googleResult({ error, ...(err.code === "ACCOUNT_LOCKED" && { locked: "1" }) }));
   }
 }
 
@@ -340,7 +346,10 @@ export function me(req, res) {
   res.json({ user: publicUser(req.user) });
 }
 
-/** "If this wasn't you, lock your account" — reached from the link in every security email. */
+/**
+ * "If this wasn't you, lock your account" — reached from the link in every security email. The unlock code is
+ * returned here and never emailed, so someone who can read the owner's email can't undo the lock.
+ */
 export async function lockAccount(req, res) {
   const { sub } = verifyPurposeToken("lock", req.body.token);
   const user = await prisma.user.findUnique({ where: { id: sub } });
@@ -348,14 +357,51 @@ export async function lockAccount(req, res) {
 
   const now = new Date();
   const lockedUntil = new Date(now.getTime() + USER_LOCK_HOURS * 60 * 60 * 1000);
-  await prisma.$transaction([
-    prisma.user.update({ where: { id: user.id }, data: { lockedUntil, failedAttempts: 0, tokensValidAfter: now } }),
+  const unlock = await newUnlockCode();
+  // Following a lock link again while locked changes nothing. A fresh code would let anyone with the owner's
+  // email re-lock, get a code of their own, and use it to undo the owner's lock.
+  const [{ count }] = await prisma.$transaction([
+    prisma.user.updateMany({
+      where: { id: user.id, ...notLockedByUser(now) },
+      data: { lockedUntil, lockedByUser: true, unlockCodeHash: unlock.hash, failedAttempts: 0, tokensValidAfter: now },
+    }),
     prisma.device.updateMany({ where: { userId: user.id }, data: { trustedUntil: null } }),
   ]);
+  if (!count) {
+    const current = await prisma.user.findUnique({ where: { id: user.id }, select: { lockedUntil: true } });
+    return res.json({ locked: true, alreadyLocked: true, lockedUntil: current.lockedUntil });
+  }
+
   await revokeAllSessions(user.id);
   await logSecurityEvent(user.id, "ACCOUNT_LOCKED_BY_USER", req);
   sendSecurityAlert("account-locked", { user, req, byUser: true, until: formatTime(lockedUntil), withLockLink: false });
-  res.json({ locked: true, lockedUntil });
+  res.json({ locked: true, lockedUntil, unlockCode: unlock.code });
+}
+
+const unlockCodeInvalid = () =>
+  badRequest("That unlock code doesn't work. Check it and try again — or, if your lock has already ended, just sign in.", { code: "UNLOCK_CODE_INVALID" });
+
+/** Lifts a lock early with its one-time unlock code. Signing in afterwards still takes the password and 2FA. */
+export async function unlockAccount(req, res) {
+  const user = await prisma.user.findUnique({ where: { email: req.body.email } });
+  const hash = user && user.lockedUntil > new Date() ? user.unlockCodeHash : null;
+  // Compared even when there's nothing to unlock, so response time doesn't reveal which accounts are locked.
+  const matches = await compareHash(normalizeUnlockCode(req.body.code), hash ?? DUMMY_CODE_HASH);
+  if (!hash || !matches) {
+    if (hash) await logSecurityEvent(user.id, "UNLOCK_FAILED", req);
+    throw unlockCodeInvalid();
+  }
+
+  // Claimed atomically, so the code works once.
+  const { count } = await prisma.user.updateMany({
+    where: { id: user.id, unlockCodeHash: hash },
+    data: { lockedUntil: null, lockedByUser: false, unlockCodeHash: null, failedAttempts: 0 },
+  });
+  if (!count) throw unlockCodeInvalid();
+
+  await logSecurityEvent(user.id, "ACCOUNT_UNLOCKED", req, user.lockedByUser ? "Locked from email link" : "Locked after failed attempts");
+  sendSecurityAlert("account-unlocked", { user, req });
+  res.json({ unlocked: true });
 }
 
 // ── Forgot password: emailed code → short-lived reset token → new password ──

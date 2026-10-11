@@ -12,6 +12,7 @@ export const compareHash = (value, hash) => bcrypt.compare(value, hash);
 
 // Compared against when an email isn't registered, so response time doesn't reveal which emails exist.
 export const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(16).toString("hex"), PASSWORD_COST);
+export const DUMMY_CODE_HASH = bcrypt.hashSync(crypto.randomBytes(16).toString("hex"), CODE_COST);
 
 /** 6-digit numeric one-time code, zero-padded. */
 export function generateNumericCode() {
@@ -21,17 +22,26 @@ export function generateNumericCode() {
 // No 0/O/1/I so codes survive being written down by hand.
 const VAULT_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-/** Vault (backup) code in XXXX-XXXX format. */
-export function generateVaultCode() {
+const groupsOfFour = (raw) => raw.match(/.{4}/g).join("-");
+
+function randomGroupedCode(length) {
   let raw = "";
-  for (let i = 0; i < 8; i++) raw += VAULT_ALPHABET[crypto.randomInt(0, VAULT_ALPHABET.length)];
-  return `${raw.slice(0, 4)}-${raw.slice(4)}`;
+  for (let i = 0; i < length; i++) raw += VAULT_ALPHABET[crypto.randomInt(0, VAULT_ALPHABET.length)];
+  return groupsOfFour(raw);
 }
 
-export function normalizeVaultCode(input) {
+function normalizeGroupedCode(input, length) {
   const raw = String(input).toUpperCase().replace(/[^A-Z0-9]/g, "");
-  return raw.length === 8 ? `${raw.slice(0, 4)}-${raw.slice(4)}` : null;
+  return raw.length === length ? groupsOfFour(raw) : null;
 }
+
+/** Vault (backup) code in XXXX-XXXX format. */
+export const generateVaultCode = () => randomGroupedCode(8);
+export const normalizeVaultCode = (input) => normalizeGroupedCode(input, 8);
+
+/** Unlock code in XXXX-XXXX-XXXX format: longer than a Vault Code, since wrong guesses can't lock it out. */
+export const generateUnlockCode = () => randomGroupedCode(12);
+export const normalizeUnlockCode = (input) => normalizeGroupedCode(input, 12);
 
 export const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
 export const randomToken = (bytes = 32) => crypto.randomBytes(bytes).toString("base64url");

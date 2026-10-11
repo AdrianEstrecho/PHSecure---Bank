@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router";
-import { errorMessage } from "../api/client.js";
+import { Link, Navigate, useNavigate } from "react-router";
+import { errorCode, errorMessage } from "../api/client.js";
 import { auth } from "../api/endpoints.js";
 import AuthShell from "../components/AuthShell.jsx";
 import FullScreenLoader from "../components/FullScreenLoader.jsx";
@@ -13,6 +13,7 @@ export default function GoogleSignIn() {
   const { signIn } = useAuth();
   const [params] = useState(() => new URLSearchParams(window.location.hash.slice(1)));
   const [error, setError] = useState(params.get("error"));
+  const [locked, setLocked] = useState(params.get("locked") === "1");
   const redeemed = useRef(false);
 
   useEffect(() => {
@@ -30,7 +31,10 @@ export default function GoogleSignIn() {
           navigate("/dashboard", { replace: true });
         }
       })
-      .catch((err) => setError(errorMessage(err)));
+      .catch((err) => {
+        setError(errorMessage(err));
+        setLocked(errorCode(err) === "ACCOUNT_LOCKED");
+      });
   }, [params, navigate, signIn]);
 
   if (!error && !params.get("token")) return <Navigate to="/login" replace />;
@@ -41,6 +45,14 @@ export default function GoogleSignIn() {
     <AuthShell>
       <h1 className="text-[30px] leading-tight font-semibold">Google sign-in didn't finish</h1>
       <Alert className="mt-6">{error}</Alert>
+      {locked && (
+        <p className="mt-4 text-[14px] text-muted">
+          Have an unlock code?{" "}
+          <Link to="/unlock" className="font-medium text-ink underline decoration-lime underline-offset-4">
+            Unlock your account
+          </Link>
+        </p>
+      )}
       <ButtonLink to="/login" className="mt-6 w-full" size="lg">
         Back to sign in
       </ButtonLink>

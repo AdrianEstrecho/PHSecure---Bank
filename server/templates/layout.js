@@ -27,11 +27,15 @@ export const paragraph = (html) =>
 
 export const strong = (text) => `<strong style="font-weight:600;">${esc(text)}</strong>`;
 
+export const link = (href, text) => `<a href="${esc(href)}" style="color:${C.forestText};font-weight:600;text-decoration:underline;">${esc(text)}</a>`;
+
 export function codeBlock(code, expiryLine) {
+  // Unlock codes (XXXX-XXXX-XXXX) get a smaller face than 6-digit codes so they fit across a phone screen.
+  const [size, spacing] = code.length > 6 ? [22, 3] : [34, 12];
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 10px;">
   <tr><td align="center" style="background:${C.limeSoft};border-radius:16px;padding:22px 12px;">
-    <div style="font-family:${MONO};font-size:34px;font-weight:500;letter-spacing:12px;padding-left:12px;color:${C.forest};">${esc(code)}</div>
+    <div style="font-family:${MONO};font-size:${size}px;font-weight:500;letter-spacing:${spacing}px;padding-left:${spacing}px;color:${C.forest};">${esc(code)}</div>
   </td></tr>
 </table>
 <p style="margin:0 0 24px;text-align:center;font-family:${SANS};font-size:13px;color:${C.muted};">${esc(expiryLine)}</p>`;

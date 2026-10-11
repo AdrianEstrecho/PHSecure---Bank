@@ -1,4 +1,4 @@
-import { codeBlock, detailsTable, esc, layout, notice, paragraph, strong } from "./layout.js";
+import { codeBlock, detailsTable, esc, layout, link, notice, paragraph, strong } from "./layout.js";
 
 // Every template receives { firstName, context: { device, location, ip, time }, lockUrl } plus its own fields,
 // and returns { subject, html, text }.
@@ -203,6 +203,8 @@ export const templates = {
       ],
     }),
 
+  // Locked from an email link (`byUser`), the unlock code was shown on screen and is never emailed. Locked after
+  // failed attempts, the email carries it.
   "account-locked": (d) =>
     alertEmail({
       ...d,
@@ -210,10 +212,38 @@ export const templates = {
       heading: "Your account is temporarily locked",
       preheader: d.byUser ? "Locked at your request" : "Locked after repeated failed attempts",
       paragraphs: d.byUser
-        ? [`Your account was locked at your request. Every device has been signed out, and sign-in is blocked until ${esc(d.until)}.`]
-        : [`After 5 unsuccessful sign-in attempts we locked your account until ${strong(d.until)} to keep it safe.`, "If these attempts weren't you, change your password as soon as you can sign in."],
+        ? [
+            `Your account was locked at your request. Every device has been signed out, and sign-in is blocked until ${esc(d.until)}.`,
+            `To unlock it sooner, open the ${link(d.unlockUrl, "Unlock account")} page and enter the unlock code we showed you when you locked it. For your safety we never send that code by email.`,
+          ]
+        : [
+            `After 5 unsuccessful sign-in attempts we locked your account until ${strong(d.until)} to keep it safe.`,
+            `If that was you and you'd rather not wait, enter this unlock code with your email on the ${link(d.unlockUrl, "Unlock account")} page:`,
+          ],
+      callout: d.byUser
+        ? null
+        : codeBlock(d.unlockCode, "It works once, until your account unlocks on its own. Don't share it with anyone.") +
+          paragraph("If these attempts weren't you, change your password as soon as you can sign in."),
       textParagraphs: d.byUser
-        ? [`Your account was locked at your request. Every device has been signed out, and sign-in is blocked until ${d.until}.`]
-        : [`After 5 unsuccessful sign-in attempts we locked your account until ${d.until} to keep it safe.`, "If these attempts weren't you, change your password as soon as you can sign in."],
+        ? [
+            `Your account was locked at your request. Every device has been signed out, and sign-in is blocked until ${d.until}.`,
+            `To unlock it sooner, go to ${d.unlockUrl} and enter the unlock code we showed you when you locked it. For your safety we never send that code by email.`,
+          ]
+        : [
+            `After 5 unsuccessful sign-in attempts we locked your account until ${d.until} to keep it safe.`,
+            `If that was you and you'd rather not wait, enter this unlock code with your email at ${d.unlockUrl}`,
+            `Your unlock code: ${d.unlockCode}\nIt works once, until your account unlocks on its own. Don't share it with anyone.`,
+            "If these attempts weren't you, change your password as soon as you can sign in.",
+          ],
+    }),
+
+  "account-unlocked": (d) =>
+    alertEmail({
+      ...d,
+      subject: "Your PHSecure account was unlocked",
+      heading: "Your account was unlocked",
+      preheader: "Unlocked early with your unlock code",
+      paragraphs: ["Your PHSecure account was just unlocked with its one-time unlock code, so it can be signed in to again. Your password and two-factor authentication still apply."],
+      textParagraphs: ["Your PHSecure account was just unlocked with its one-time unlock code, so it can be signed in to again. Your password and two-factor authentication still apply."],
     }),
 };

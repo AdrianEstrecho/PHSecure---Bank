@@ -151,7 +151,7 @@ export default function TwoFactorChallenge() {
   };
 
   const stopIfTerminal = (err) => {
-    if (TERMINAL.has(errorCode(err))) setFatal(errorMessage(err));
+    if (TERMINAL.has(errorCode(err))) setFatal({ message: errorMessage(err), locked: errorCode(err) === "ACCOUNT_LOCKED" });
     throw err;
   };
 
@@ -174,7 +174,15 @@ export default function TwoFactorChallenge() {
     return (
       <AuthShell>
         <h1 className="text-[30px] leading-tight font-semibold">Sign-in stopped</h1>
-        <Alert className="mt-6">{fatal}</Alert>
+        <Alert className="mt-6">{fatal.message}</Alert>
+        {fatal.locked && (
+          <p className="mt-4 text-[14px] text-muted">
+            Have an unlock code?{" "}
+            <Link to="/unlock" className="font-medium text-ink underline decoration-lime underline-offset-4">
+              Unlock your account
+            </Link>
+          </p>
+        )}
         <Link to="/login" className="mt-6 inline-block font-medium text-ink underline decoration-lime underline-offset-4">
           Back to sign in
         </Link>
