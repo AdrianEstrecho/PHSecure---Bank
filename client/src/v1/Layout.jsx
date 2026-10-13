@@ -43,7 +43,7 @@ export default function Layout({ children }) {
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-5 gap-y-3 px-4 py-4 text-[12.5px] text-muted sm:px-6">
           <VersionToggle />
-          <p>PHSecure Bank · Version 1, the early build: email verification is the only sign-in check.</p>
+          <p>PHSecure Bank · Version 1, the early build: email verification is the only extra sign-in check.</p>
         </div>
       </footer>
     </div>

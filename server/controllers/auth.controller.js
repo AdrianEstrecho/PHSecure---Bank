@@ -25,9 +25,6 @@ import { signPurposeToken, verifyPurposeToken } from "../utils/tokens.js";
 
 const USER_LOCK_HOURS = 24;
 
-// Sent by version 1 of the site, where every sign-in finishes with an emailed code and nothing else.
-const emailCodeOnlyField = z.boolean().optional().default(false);
-
 export const schemas = {
   register: z.object({
     fullName: z.string().trim().min(2, "Enter your full name.").max(80, "That name is too long."),
@@ -37,7 +34,7 @@ export const schemas = {
   }),
   verifyEmail: z.object({ verificationToken: tokenField, code: codeField }),
   resendVerification: z.object({ verificationToken: tokenField }),
-  login: z.object({ email: emailField, password: z.string().min(1, "Enter your password.").max(128), emailCodeOnly: emailCodeOnlyField }),
+  login: z.object({ email: emailField, password: z.string().min(1, "Enter your password.").max(128) }),
   send2fa: z.object({ challengeToken: tokenField, method: z.enum(["EMAIL", "SMS"]) }),
   passkeyOptions: z.object({ challengeToken: tokenField }),
   verify2fa: z
@@ -60,7 +57,7 @@ export const schemas = {
     email: emailField,
     code: z.string().refine((v) => normalizeUnlockCode(v), "Enter the 12-character unlock code, e.g. ABCD-EFGH-JKLM."),
   }),
-  googleFinish: z.object({ token: tokenField, emailCodeOnly: emailCodeOnlyField }),
+  googleFinish: z.object({ token: tokenField }),
   forgotPassword: z.object({ email: emailField }),
   verifyResetCode: z.object({ email: emailField, code: codeField }),
   resetPassword: z.object({ resetToken: tokenField, newPassword: passwordField }),
@@ -164,25 +161,11 @@ export async function login(req, res) {
     });
   }
 
-  res.json(await afterFirstFactor(req, res, user, { verifiedWith: "Password", emailCodeOnly: req.body.emailCodeOnly }));
+  res.json(await afterFirstFactor(req, res, user, { verifiedWith: "Password" }));
 }
 
-/**
- * After the password (or Google): a 2FA challenge, unless no method is on or this device is trusted.
- * Version 1 (`emailCodeOnly`) always asks for an emailed code instead, whatever the account has set up.
- */
-async function afterFirstFactor(req, res, user, { verifiedWith, alertNewDevice = true, emailCodeOnly = false }) {
-  if (emailCodeOnly) {
-    return {
-      requires2FA: true,
-      // alertNewDevice is carried through so a Google account opened just now isn't alerted about its own first sign-in.
-      challengeToken: signPurposeToken("login-challenge", { sub: user.id, emailCodeOnly: true, alertNewDevice }),
-      methods: ["EMAIL"],
-      default: "EMAIL",
-      maskedEmail: maskEmail(user.email),
-    };
-  }
-
+/** After the password (or Google): a 2FA challenge, unless no method is on or this device is trusted. */
+async function afterFirstFactor(req, res, user, { verifiedWith, alertNewDevice = true }) {
   const methods = user.twoFactorOn ? await enabledMethodTypes(user.id) : [];
   const device = await findDevice(req, user.id);
   if (!methods.length || isTrusted(device)) {
@@ -266,19 +249,15 @@ export async function googleFinish(req, res) {
   const user = await prisma.user.findUnique({ where: { id: sub } });
   if (!user) throw unauthorized();
   assertNotLocked(user);
-  res.json(await afterFirstFactor(req, res, user, { verifiedWith: "Google", alertNewDevice: !isNew, emailCodeOnly: req.body.emailCodeOnly }));
+  res.json(await afterFirstFactor(req, res, user, { verifiedWith: "Google", alertNewDevice: !isNew }));
 }
 
-/** The account a sign-in challenge belongs to. A version 1 challenge can only be finished with the emailed code. */
-async function challengeUser(challengeToken, method) {
-  const { sub, emailCodeOnly = false, alertNewDevice = true } = verifyPurposeToken("login-challenge", challengeToken);
+async function challengeUser(challengeToken) {
+  const { sub } = verifyPurposeToken("login-challenge", challengeToken);
   const user = await prisma.user.findUnique({ where: { id: sub } });
   if (!user) throw unauthorized();
   assertNotLocked(user);
-  if (emailCodeOnly && method !== "EMAIL") {
-    throw badRequest("This sign-in can only be finished with the code we email you.", { code: "METHOD_NOT_ENABLED" });
-  }
-  return { user, emailCodeOnly, alertNewDevice };
+  return user;
 }
 
 async function enabledMethod(userId, type) {
@@ -288,9 +267,9 @@ async function enabledMethod(userId, type) {
 }
 
 export async function send2fa(req, res) {
+  const user = await challengeUser(req.body.challengeToken);
   const { method } = req.body;
-  const { user, emailCodeOnly } = await challengeUser(req.body.challengeToken, method);
-  if (!emailCodeOnly) await enabledMethod(user.id, method);
+  await enabledMethod(user.id, method);
 
   const scope = { userId: user.id, purpose: "LOGIN", method };
   const delivery =
@@ -302,7 +281,7 @@ export async function send2fa(req, res) {
 }
 
 export async function passkeyLoginOptions(req, res) {
-  const { user } = await challengeUser(req.body.challengeToken, "PASSKEY");
+  const user = await challengeUser(req.body.challengeToken);
   await enabledMethod(user.id, "PASSKEY");
   res.json(await passkeyAuthenticationOptions(user));
 }
@@ -311,12 +290,12 @@ export async function passkeyLoginOptions(req, res) {
 const FAILED_2FA_CODES = new Set([...WRONG_CODE_ERRORS, "TOTP_INVALID", "PASSKEY_FAILED", "VAULT_INVALID"]);
 
 export async function verify2fa(req, res) {
+  const user = await challengeUser(req.body.challengeToken);
   const { method, code, credential, trustDevice } = req.body;
-  const { user, emailCodeOnly, alertNewDevice } = await challengeUser(req.body.challengeToken, method);
 
   try {
     if (method === "EMAIL" || method === "SMS") {
-      if (!emailCodeOnly) await enabledMethod(user.id, method);
+      await enabledMethod(user.id, method);
       await verifyCode({ userId: user.id, purpose: "LOGIN", method, code });
     } else if (method === "TOTP") {
       const row = await enabledMethod(user.id, "TOTP");
@@ -336,15 +315,11 @@ export async function verify2fa(req, res) {
     }
   } catch (err) {
     if (err instanceof HttpError && FAILED_2FA_CODES.has(err.code)) {
-      await recordFailedAttempt(req, user, "LOGIN_2FA_FAILED", emailCodeOnly ? "Email code" : (METHOD_NAMES[method] ?? "Vault Code"));
+      await recordFailedAttempt(req, user, "LOGIN_2FA_FAILED", METHOD_NAMES[method] ?? "Vault Code");
     }
     throw err;
   }
 
-  if (emailCodeOnly) {
-    // The account may not have PHSecure Mail Key turned on, so there's no method row to mark as used.
-    return res.json(await completeLogin(req, res, user, { verifiedWith: "Email code", alertNewDevice }));
-  }
   if (method !== "VAULT") {
     await prisma.twoFactorMethod.update({ where: { userId_type: { userId: user.id, type: method } }, data: { lastUsedAt: new Date() } });
   }

@@ -5,7 +5,7 @@ import CodeForm from "./CodeForm.jsx";
 import Layout from "./Layout.jsx";
 import { AuthBox, TextLink } from "./ui.jsx";
 
-/** The second step of every version 1 sign-in, after the password or Google: the emailed code. */
+/** The second step of a version 1 sign-in when email verification is on: the emailed code. */
 export default function LoginVerify() {
   const navigate = useNavigate();
   const location = useLocation();

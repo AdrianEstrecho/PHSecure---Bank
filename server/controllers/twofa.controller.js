@@ -25,6 +25,8 @@ export const schemas = {
     code: z.string().trim().optional(),
     credential: z.looseObject({ id: z.string() }).optional(),
     deviceName: z.string().trim().min(1).max(40).optional().default("Passkey"),
+    // Version 1 of the site has no Vault Codes, so it turns PHSecure Mail Key on without them.
+    createVaultCodes: z.boolean().optional().default(true),
   }),
   disableRequest: z.object({ method: methodField, password: z.string().max(128).optional().default("") }),
   code: z.object({ code: codeField }),
@@ -111,8 +113,9 @@ export async function enableConfirm(req, res) {
   }
 
   const addingPasskey = method === "PASSKEY" && existing?.enabled;
-  const firstMethod = !user.twoFactorOn;
-  const vault = firstMethod ? await createVaultCodeSet() : null;
+  // Vault Codes come with the first key, or with the next one if version 1 turned a key on without them.
+  const needsVault = req.body.createVaultCodes && !(await prisma.backupCode.count({ where: { userId: user.id } }));
+  const vault = needsVault ? await createVaultCodeSet() : null;
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {

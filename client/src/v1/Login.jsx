@@ -1,34 +1,30 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { errorMessage } from "../api/client.js";
 import { auth } from "../api/endpoints.js";
-import { useAuth } from "../context/AuthContext.jsx";
 import CodeForm from "./CodeForm.jsx";
+import { NeedsVersion2, useFinishSignIn } from "./finishSignIn.jsx";
 import Layout from "./Layout.jsx";
 import { AuthBox, Button, Field, GoogleLink, Input, Message, TextLink } from "./ui.jsx";
 
 export default function Login() {
-  const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const finish = useFinishSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [verification, setVerification] = useState(null);
-
-  const finish = (session) => {
-    signIn(session);
-    navigate("/dashboard", { replace: true });
-  };
+  const [needsVersion2, setNeedsVersion2] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setNeedsVersion2(false);
     try {
-      const result = await auth.login(email, password, { emailCodeOnly: true });
+      const result = await auth.login(email, password);
       if (result.requiresEmailVerification) setVerification(result);
-      else navigate("/login/verify", { state: { challenge: result } });
+      else setNeedsVersion2(!finish(result));
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -62,7 +58,7 @@ export default function Login() {
 
   return (
     <Layout>
-      <AuthBox title="Sign in" intro="Use your email and password. We'll then email you a code to finish signing in.">
+      <AuthBox title="Sign in" intro="Use your email and password. If you've turned on email verification, we'll then email you a code.">
         <form onSubmit={submit} className="space-y-4">
           <Field label="Email" htmlFor="email">
             <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -71,6 +67,7 @@ export default function Login() {
             <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </Field>
           {error && <Message>{error}</Message>}
+          {needsVersion2 && <NeedsVersion2 />}
           <Button type="submit" className="w-full" loading={busy}>
             Sign in
           </Button>

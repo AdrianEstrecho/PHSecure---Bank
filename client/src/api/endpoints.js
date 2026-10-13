@@ -6,9 +6,8 @@ export const auth = {
   register: (body) => data(api.post("/auth/register", body)),
   verifyEmail: (verificationToken, code) => data(api.post("/auth/verify-email", { verificationToken, code })),
   resendVerification: (verificationToken) => data(api.post("/auth/verify-email/resend", { verificationToken })),
-  // options: { emailCodeOnly: true } from version 1, where every sign-in finishes with an emailed code.
-  login: (email, password, options) => data(api.post("/auth/login", { email, password, ...options })),
-  googleFinish: (token, options) => data(api.post("/auth/google/finish", { token, ...options })),
+  login: (email, password) => data(api.post("/auth/login", { email, password })),
+  googleFinish: (token) => data(api.post("/auth/google/finish", { token })),
   send2fa: (challengeToken, method) => data(api.post("/auth/2fa/send", { challengeToken, method })),
   passkeyOptions: (challengeToken) => data(api.post("/auth/2fa/passkey/options", { challengeToken })),
   verify2fa: (body) => data(api.post("/auth/2fa/verify", body)),

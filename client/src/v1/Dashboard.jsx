@@ -3,13 +3,14 @@ import { cx } from "../components/ui.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { formatDate, formatMoney } from "../lib/format.js";
 import { useLoad } from "../lib/useLoad.js";
+import EmailVerification from "./EmailVerification.jsx";
 import Layout from "./Layout.jsx";
 import { Box, Message } from "./ui.jsx";
 
 const loadDashboard = () =>
   Promise.all([banking.accounts(), banking.transactions({ limit: 8 })]).then(([accounts, { transactions }]) => ({ ...accounts, transactions }));
 
-/** Version 1 has one page once you're in: balances, recent transactions and how sign-in is protected. */
+/** Version 1 has one page once you're in: balances, recent transactions and the email verification setting. */
 export default function Dashboard() {
   const { user } = useAuth();
   const { data, error } = useLoad(loadDashboard);
@@ -70,12 +71,7 @@ export default function Dashboard() {
             )}
           </Box>
 
-          <Box className="mt-6 p-5">
-            <h2 className="text-[15px] font-semibold">Sign-in security</h2>
-            <p className="mt-1 text-[14px] leading-relaxed text-muted">
-              Email verification is on. Every time you sign in, we email a 6-digit code to {user.maskedEmail}.
-            </p>
-          </Box>
+          <EmailVerification />
         </>
       )}
     </Layout>

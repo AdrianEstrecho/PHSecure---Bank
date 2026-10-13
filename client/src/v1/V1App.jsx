@@ -9,7 +9,7 @@ import Login from "./Login.jsx";
 import LoginVerify from "./LoginVerify.jsx";
 import Register from "./Register.jsx";
 
-/** Version 1, the early build: sign-in by password or Google, an emailed code as the only check, and a dashboard. */
+/** Version 1, the early build: sign-in by password or Google, email verification as the only extra check, and a dashboard. */
 export default function V1App() {
   return (
     <Routes>

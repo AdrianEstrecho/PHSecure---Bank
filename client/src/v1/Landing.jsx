@@ -6,7 +6,7 @@ import { Box, buttonClass } from "./ui.jsx";
 const FEATURES = [
   ["Two accounts", "A current account and a savings account, opened as soon as you confirm your email."],
   ["Your transactions", "See your latest deposits and payments in one list, with the date and amount."],
-  ["Email verification", "Every time you sign in, we email you a 6-digit code. Your password alone isn't enough."],
+  ["Email verification", "Turn it on and we'll email you a 6-digit code each time you sign in, so your password alone isn't enough."],
 ];
 
 export default function Landing() {
@@ -18,7 +18,7 @@ export default function Landing() {
       <section className="py-4 sm:py-8">
         <h1 className="text-[30px] leading-tight font-bold sm:text-[38px]">Online banking, made simple.</h1>
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
-          Open an account, check your balances and see your transactions from anywhere. Each sign-in is confirmed with a code sent to your email.
+          Open an account, check your balances and see your transactions from anywhere. Turn on email verification and every sign-in is confirmed with a code sent to your email.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           {signedIn ? (
