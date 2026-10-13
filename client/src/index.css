@@ -90,6 +90,11 @@
     font-family: var(--font-display);
     letter-spacing: -0.025em;
   }
+  /* Version 1, the early build, sets its headings in the body face. */
+  .v1 :is(h1, h2, h3) {
+    font-family: var(--font-sans);
+    letter-spacing: normal;
+  }
   ::selection {
     background: var(--color-lime);
     color: var(--color-ink);

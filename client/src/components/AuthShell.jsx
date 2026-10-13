@@ -1,6 +1,7 @@
 import BankCard from "./BankCard.jsx";
 import Logo from "./Logo.jsx";
 import { HeadlinePill } from "./ui.jsx";
+import VersionToggle from "./VersionToggle.jsx";
 
 /** Split layout for sign-in, registration and 2FA: forest panel with the card fan, form on the right. */
 export default function AuthShell({ children }) {
@@ -47,6 +48,9 @@ export default function AuthShell({ children }) {
         <div className="flex flex-1 flex-col px-5 pt-8 pb-10 sm:px-8 lg:justify-center lg:py-16">
           <div className="mx-auto w-full max-w-[420px]">{children}</div>
         </div>
+        <footer className="flex justify-center px-5 pb-6 sm:px-8">
+          <VersionToggle />
+        </footer>
       </main>
     </div>
   );

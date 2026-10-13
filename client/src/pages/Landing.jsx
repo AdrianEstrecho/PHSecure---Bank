@@ -21,6 +21,7 @@ import { Link } from "react-router";
 import BankCard from "../components/BankCard.jsx";
 import Logo from "../components/Logo.jsx";
 import { ButtonLink, Eyebrow, HeadlinePill, Marquee, cx } from "../components/ui.jsx";
+import VersionToggle from "../components/VersionToggle.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { METHOD_ORDER, METHODS } from "../lib/methods.js";
 
@@ -794,9 +795,10 @@ export default function Landing() {
           </p>
         </div>
         <div className="relative bg-forest">
-          <p className="mx-auto max-w-6xl border-t border-white/10 px-4 py-6 text-[12.5px] text-white/50 sm:px-8">
-            © 2026 PHSecure Bank. A demonstration app — not a real bank, and it holds no real money.
-          </p>
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-4 border-t border-white/10 px-4 py-6 sm:px-8">
+            <VersionToggle tone="dark" />
+            <p className="text-[12.5px] text-white/50">© 2026 PHSecure Bank. A demonstration app — not a real bank, and it holds no real money.</p>
+          </div>
         </div>
       </footer>
     </div>

@@ -55,11 +55,13 @@ client/src/
   components/                       OtpInput, MethodCard, EnableMethodModal, DisableMethodModal,
                                     TotpSetup, SmsSetup, PasskeySetup, VaultCodesModal, ChangePasswordModal,
                                     SignedInDevices, Seal, Passbook, …
-  api/ context/ lib/                axios client (auto-refresh, CSRF), AuthContext, formatting, method metadata
+  api/ context/ lib/                axios client (auto-refresh, CSRF), AuthContext, VersionContext, formatting, method metadata
+  v1/                               Version 1, the early build: Landing, Login, LoginVerify, Register, GoogleSignIn, Dashboard
 ```
 
 ## Flows
 
+- **Version 1 / Version 2** (the switch in every footer): version 2 is the full site described below. Version 1 is the early build, kept for comparison: a plain design, sign-in with a password or *Continue with Google*, and an emailed code as the only check, asked for at every sign-in. It has no authenticator, text, passkey, Vault Codes or trusted devices, and once you're in there's just a dashboard; pages only version 2 has fall back to it. Version 1 sends `emailCodeOnly: true` with `POST /api/auth/login` and `POST /api/auth/google/finish`, and gets a challenge that only the emailed code can finish, whatever the account has turned on in version 2. That makes version 1 weaker than version 2 for accounts with an authenticator or passkey, so it's a demonstration switch, not something to ship. The choice is kept per browser, and switching during a sign-in starts it over.
 - **Turning a method on:** toggle → emailed code → short-lived setup token → method setup (TOTP QR / phone + SMS code / passkey prompt) → on. The first method also creates 10 Vault Codes, shown once with Download and Copy. The toggle only flips once the server confirms.
 - **Turning a method off:** current password (if the account has one) → emailed code → off, plus a `2fa-disabled-alert` email. Turning off the last method turns 2FA off and deletes the Vault Codes.
 - **Sign-in:** password → the default method's screen, with *Try another method* (other methods and *Use a Vault Code*) and *Trust this device for 30 days*.

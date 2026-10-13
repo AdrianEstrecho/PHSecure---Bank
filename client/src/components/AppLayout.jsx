@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import Logo from "./Logo.jsx";
 import Modal from "./Modal.jsx";
 import { Button, cx } from "./ui.jsx";
+import VersionToggle from "./VersionToggle.jsx";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: House },
@@ -154,7 +155,10 @@ export default function AppLayout() {
       </main>
 
       {/* Bottom padding clears the tab bar below lg. */}
-      <footer className="mx-auto w-full max-w-6xl px-4 pb-24 text-[12px] text-muted sm:px-8 lg:pb-8">PHSecure Bank · A demonstration app — no real money is held.</footer>
+      <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-3 px-4 pb-24 text-[12px] text-muted sm:px-8 lg:pb-8">
+        <VersionToggle />
+        <p>PHSecure Bank · A demonstration app — no real money is held.</p>
+      </footer>
 
       <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 border-t border-line/70 bg-surface/95 backdrop-blur-md lg:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-5 px-1">

@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router";
 import AppLayout from "./components/AppLayout.jsx";
 import { PublicOnly, RequireAuth } from "./components/RouteGuards.jsx";
+import { useVersion } from "./context/VersionContext.jsx";
 import Accounts from "./pages/Accounts.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
@@ -16,8 +17,12 @@ import SecurityActivity from "./pages/SecurityActivity.jsx";
 import Transfers from "./pages/Transfers.jsx";
 import TwoFactorChallenge from "./pages/TwoFactorChallenge.jsx";
 import UnlockAccount from "./pages/UnlockAccount.jsx";
+import V1App from "./v1/V1App.jsx";
 
 export default function App() {
+  const { version } = useVersion();
+  if (version === 1) return <V1App />;
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />

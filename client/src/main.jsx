@@ -4,13 +4,16 @@ import { BrowserRouter } from "react-router";
 import App from "./App.jsx";
 import DevOutboxLink from "./components/DevOutboxLink.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { VersionProvider } from "./context/VersionContext.jsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <VersionProvider>
+          <App />
+        </VersionProvider>
         {import.meta.env.DEV && <DevOutboxLink />}
       </AuthProvider>
     </BrowserRouter>

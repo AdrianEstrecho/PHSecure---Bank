@@ -411,6 +411,21 @@ check(r.status === 401, "previous password no longer works");
 r = await g.post("/auth/login", { email, password: resetPassword });
 check(r.status === 200 && r.data.accessToken, "sign in with the reset password", r.data);
 
+// ── Version 1: the emailed code is the only second step ───────
+const v = new Client({ "x-forwarded-for": "198.51.100.9" });
+r = await v.post("/auth/login", { email, password: resetPassword, emailCodeOnly: true });
+check(r.status === 200 && r.data.requires2FA && r.data.methods.join() === "EMAIL" && !v.jar.has("aur_rt"), "version 1: an emailed code is needed even with 2FA off", r.data);
+challengeToken = r.data.challengeToken;
+r = await v.post("/auth/2fa/verify", { challengeToken, method: "TOTP", code: "123456" });
+check(r.status === 400 && r.data.error.code === "METHOD_NOT_ENABLED", "version 1: no other method finishes it", r.data);
+r = await v.post("/auth/2fa/send", { challengeToken, method: "EMAIL" });
+check(r.status === 200 && r.data.destination === "t•••@example.com", "version 1: sign-in code emailed", r.data);
+c = await latestCode(email, "sign-in code");
+r = await v.post("/auth/2fa/verify", { challengeToken, method: "EMAIL", code: c.code });
+check(r.status === 200 && r.data.accessToken, "version 1: signed in with the emailed code", r.data);
+r = await v.post("/auth/login", { email, password: resetPassword });
+check(r.status === 200 && r.data.accessToken, "version 2 still signs in without a code while 2FA is off", r.data);
+
 await prisma.$disconnect();
 console.log(`\n${failures ? `✗ ${failures} failure(s)` : "✓ all checks passed"}`);
 process.exit(failures ? 1 : 0);
